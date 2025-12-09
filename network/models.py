@@ -7,6 +7,9 @@ class User(AbstractUser):
     
     def followers_count(self):
         return self.followers.count()
+    
+    def following_count(self):
+        return self.following.count()
 
 # POST model
 class Post(models.Model):
