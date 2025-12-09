@@ -1,14 +1,17 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
     <h2>All Posts</h2>
-    <div class="form-contianer">
-        <form id="newPostForm">
-            {% csrf_token %}
-            <textarea name="content" id="formContent" placeholder="What's on your mind?"></textarea>
-            <button type="submit">Post</button>
-        </form>
-    </div>
+    {% if user.is_authenticated %}
+        <div class="form-contianer">
+            <form id="newPostForm">
+                {% csrf_token %}
+                <textarea name="content" id="formContent" placeholder="What's on your mind?"></textarea>
+                <button type="submit">Post</button>
+            </form>
+        </div>
+    {% endif %}
     <div id="posts-container">
         <div id="newPost" style="display: none;"></div>
         {% for post in posts %}

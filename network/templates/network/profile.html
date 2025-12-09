@@ -1,11 +1,16 @@
-{% exteds "network/layout.html" %}
+{% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
-    <h2>{{ profile_user.username }}'s Profile</h2>
+    <h2>{{ profile_user.username }}</h2>
     <p>Followers: <span id="followers-count">{{ profile_user.followers_count }}</span></p>
     <p>Following: <span id="following-count">{{ profile_user.following_count }}</span></p>
     {% if user != profile_user %}
-        <button id="follow-btn">
+        <form id="followForm">
+            {% csrf_token %}
+            <input type="hidden" name="username" value="{{ profile_user.username }}">
+        </form>
+        <button id="follow-btn" type="submit">
             {% if is_following %}
                 Unfollow
             {% else %}
@@ -13,7 +18,7 @@
             {% endif %}
         </button>
     {% endif %}
-    <h3>Posts by {{ profile_user.username }}</h3>
+    <h3>Posted by {{ profile_user.username }}</h3>
     <div id="posts-container">
         <div id="newPost" style="display: none;"></div>
         {% for post in posts %}
@@ -36,5 +41,31 @@
     </div>
 {% endblock %}
 {% block script %}
-    <script src="{% static 'network/index.js' %}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const followForm = document.querySelector("#followForm");
+            const followBtn = document.querySelector("#follow-btn");
+            const followersCountSpan = document.querySelector("#followers-count");
+
+            followBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                const formData = new FormData(followForm);
+                fetch("/follow", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+                    },
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.status === "success") {
+                        console.log(data.is_following);
+                        followBtn.textContent = (data.action === "followed") ? "Unfollow" : "Follow";
+                        followersCountSpan.textContent = data.followers_count;
+                    } 
+                });
+            });
+        });
+    </script>
 {% endblock %}

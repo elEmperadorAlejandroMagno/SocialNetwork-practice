@@ -29,7 +29,7 @@ def toggle_like(user: User, post_id: int) -> tuple[int, str]:
     likes_count: int = post.likes_count()
     return likes_count, action
 
-def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, str]:
+def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, bool]:
     user_to_follow: User = User.objects.get(username=username_to_follow)
 
     follow, created = Follow.objects.get_or_create(follower=follower, following=user_to_follow)

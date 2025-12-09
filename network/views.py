@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse
 
-from .models import User
+from .models import User, Follow
 
 from .utils import create_new_post, update_post, toggle_like, toggle_follow
 
@@ -75,7 +75,24 @@ def profile(request, username):
 
     retorna template con data del usuario
     """
-    pass
+    if request.method == "GET":
+        user = request.user
+        try:
+            profile_user = User.objects.get(username=username)
+        except Exception:
+            messages.error(request, "User not found.")
+            return redirect("index")
+
+        is_following = False
+        if user.username != username:
+            is_following = Follow.objects.filter(follower=user, following=profile_user).exists()
+        posts = profile_user.posts.all().order_by("-created_at")
+        context = {
+            "profile_user": profile_user,
+            "posts": posts,
+            "is_following": is_following,
+        }
+        return render(request, "network/profile.html", context)
 
 @login_required
 def new_post(request):
