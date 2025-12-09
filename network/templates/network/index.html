@@ -1,5 +1,35 @@
 {% extends "network/layout.html" %}
 
 {% block body %}
-    TODO
+    <h2>All Posts</h2>
+    <div class="form-contianer">
+        <form id="newPostForm">
+            {% csrf_token %}
+            <textarea name="content" id="formContent" placeholder="What's on your mind?"></textarea>
+            <button type="submit">Post</button>
+        </form>
+    </div>
+    <div id="posts-container">
+        <div id="newPost" style="display: none;"></div>
+        {% for post in posts %}
+            <div class="post" data-post-id="{{ post.id }}">
+                <p><strong>{{ post.author.username }}</strong> says:</p>
+                <p class="post-content">{{ post.content }}</p>
+                <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
+                <button class="like-button">
+                    {% if user in post.likes.all %}
+                        Unlike
+                    {% else %}
+                        Like
+                    {% endif %}
+                </button>
+                {% if user == post.author %}
+                    <button id="editBtn">Edit</button>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'network/index.js' %}"></script>
 {% endblock %}
