@@ -59,4 +59,9 @@ class PostTests(TestCase):
         self.assertEqual(unfollow_response.status_code, 200)
         self.assertEqual(unfollow_response.json().get("action"), "unfollowed")
 
+    def test_post_deletion(self):
+        # Eliminar el post
+        delete_response = self.client.post("/post/delete", data=json.dumps({"post_id": self.post_id}), content_type="application/json")
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertEqual(delete_response.json().get("status"), "success")
     
