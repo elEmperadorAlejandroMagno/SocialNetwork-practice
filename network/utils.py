@@ -16,7 +16,10 @@ def update_post(post_id: int, new_content: str) -> Post:
         raise ValueError("Post not found")
 
 def toggle_like(user: User, post_id: int) -> tuple[int, str]:
-    post: Post = Post.objects.get(id=post_id)
+    try:
+        post: Post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        raise ValueError("Post not found")
 
     like, created = post.likes.get_or_create(user=user)
     if not created:

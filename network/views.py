@@ -6,13 +6,28 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse
+import json
 
-from .models import User, Follow
+from .models import User, Follow, Post
 
 from .utils import create_new_post, update_post, toggle_like, toggle_follow
 
 def index(request):
-    return render(request, "network/index.html")
+    if request.method == "GET":
+        posts = None
+        if request.user.is_authenticated:   
+            filter_param = request.GET.get("filter")
+            if filter_param == "following":
+                following_users = [follow.following for follow in Follow.objects.filter(follower=request.user)]
+                posts = Post.objects.filter(author__in=following_users).order_by("-created_at")
+                if posts.count() < 1:
+                    return render(request, 'network/index.html', { "message": "No posts from followed users." })
+            else:
+                posts = Post.objects.all().order_by("-created_at")
+
+        else:
+            posts = Post.objects.all().order_by("-created_at")
+    return render(request, "network/index.html", { "posts": posts })
 
 def login_view(request):
     if request.method == "POST":
@@ -99,6 +114,9 @@ def new_post(request):
     if request.method == "POST":
         data = request.POST.get("content")
         user = request.user
+        if len(data) < 1:
+            messages.error(request, "Post content cannot be empty.")
+            return JsonResponse({"status": "error", "message": "Post content cannot be empty" }, status=400)
         try:
             post = create_new_post(user, data)
             response_data = {
@@ -120,8 +138,17 @@ def new_post(request):
 @login_required
 def edit_post(request):
     if request.method == "POST":
-        post_id = request.POST.get("post_id")
-        new_content = request.POST.get("content")
+        try:
+            data = json.loads(request.body)
+            post_id = data.get("post_id")
+            new_content = data.get("content")
+
+            post_to_update = Post.objects.get(pk=post_id)
+            if post_to_update.author != request.user:
+                return JsonResponse({"status": "error", "message": "Unauthorized"}, status=403)
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        
         try:
             updated_post = update_post(post_id, new_content)
             messages.success(request, "Post updated successfully!")
@@ -132,6 +159,29 @@ def edit_post(request):
             messages.error(request, "Post not found.")
             return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
         return JsonResponse({"status": "success", "new_content": updated_post.content})
+    
+@login_required
+def delete_post(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            post_id = data.get("post_id")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        
+        try:
+            post_to_delete = Post.objects.get(id=post_id)
+            if post_to_delete.author != request.user:
+                return JsonResponse({"status": "error", "message": "Unauthorized"}, status=403)
+            post_to_delete.delete()
+            messages.success(request, "Post deleted successfully!")
+        except Post.DoesNotExist:
+            messages.error(request, "Post not found.")
+            return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
+        except IntegrityError:
+            messages.error(request, "Error deleting post.")
+            return JsonResponse({"status": "error", "message": "Error deleting post"}, status=404)
+        return JsonResponse({"status": "success", "message": "Post deleted"})
 
 @login_required
 def like_unlike(request):
@@ -145,13 +195,18 @@ def like_unlike(request):
     """
     if request.method == "POST":
         user = request.user
-        post_id = request.POST.get("post_id")
+        try:
+            data = json.loads(request.body)
+            post_id = data.get("post_id")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        
         try:
             likes_count, action = toggle_like(user, post_id)
         except ValueError:
-            return JsonResponse({"status": "error"}, status=400)
+            return JsonResponse({"status": "error", "message": "Post not found"}, status=400)
         except IntegrityError:
-            return JsonResponse({"status": "error"}, status=404)
+            return JsonResponse({"status": "error", "message": "Error processing like"}, status=404)
         return JsonResponse({"status": "success", "likes_count": likes_count, "action": action})
 
 @login_required
@@ -165,11 +220,16 @@ def follow_unfollow(request):
     """
     if request.method == "POST":
         user = request.user
-        username_to_follow = request.POST.get("username")
+        try:
+            data = json.loads(request.body)
+            username_to_follow = data.get("username")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        
         try:
             followers_count, action = toggle_follow(user, username_to_follow)
         except ValueError:
-            return JsonResponse({"status": "error"}, status=400)
+            return JsonResponse({"status": "error", "message": "User not found"}, status=400)
         except IntegrityError:
-            return JsonResponse({"status": "error"}, status=404)
+            return JsonResponse({"status": "error", "message": "Error processing follow"}, status=404)
         return JsonResponse({"status": "success", "followers_count": followers_count, "action": action})

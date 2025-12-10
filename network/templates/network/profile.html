@@ -25,19 +25,33 @@
             <div class="post" data-post-id="{{ post.id }}">
                 <p><strong>{{ post.author.username }}</strong> says:</p>
                 <p class="post-content">{{ post.content }}</p>
+                <p class="timestamp">{{ post.created_at }}</p>
                 <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
-                <button class="like-button">
+                <button class="like-button" id="likeBtn">
                     {% if user in post.likes.all %}
                         Unlike
                     {% else %}
                         Like
                     {% endif %}
                 </button>
-                {% if user == post.author %}
+                {% if user.is_authenticated and user == post.author %}
                     <button id="editBtn">Edit</button>
+                    <button id="deleteBtn">Delete</button>
                 {% endif %}
             </div>
         {% endfor %}
+    </div>
+    <div class="modal-background" style="display: none;">
+        <div class="modal">
+            <div class="modal-content">
+                <h4>You are going to delete this post</h4>
+                <form id="deleteForm">
+                    <input type="hidden" name="post_id" value="">
+                    <button type="submit">Confirm</button>
+                    <button type="button" id="closeBtn">Cancel</button>
+                </form>
+            </div>
+        </div>
     </div>
 {% endblock %}
 {% block script %}
@@ -47,25 +61,80 @@
             const followBtn = document.querySelector("#follow-btn");
             const followersCountSpan = document.querySelector("#followers-count");
 
-            followBtn.addEventListener("click", function (e) {
+            if (followBtn) {
+                followBtn.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    const formData = new FormData(followForm);
+                    fetch("/follow", {
+                        method: "POST",
+                        body: formData,
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                        },
+                    })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.status === "success") {
+                            console.log(data.is_following);
+                            followBtn.textContent = (data.action === "followed") ? "Unfollow" : "Follow";
+                            followersCountSpan.textContent = data.followers_count;
+                        } 
+                    });
+                });
+            }
+
+            const deleteButtons = document.querySelectorAll("#deleteBtn");
+            const closeBtn = document.querySelector("#closeBtn");
+            const deleteForm = document.querySelector("#deleteForm");
+
+            deleteButtons.forEach( btn => {
+                btn.addEventListener("click", function() {
+                    const postId = this.closest(".post").getAttribute("data-post-id");
+                    openModal(postId);
+                });
+            })
+
+            closeBtn.addEventListener("click", function() {
+                closeModal();
+            });
+
+            deleteForm.addEventListener("submit", function(e) {
                 e.preventDefault();
-                const formData = new FormData(followForm);
-                fetch("/follow", {
+                deletePost();
+            });
+
+            function openModal(post_id) {
+                document.querySelector(".modal-background").style.display = "block";
+                document.querySelector("#deleteForm input[name='post_id']").value = post_id;
+            }
+            
+            function closeModal() {
+                document.querySelector(".modal-background").style.display = "none";
+            }
+            function deletePost() {
+                const postId = document.querySelector("#deleteForm input[name='post_id']").value;
+                console.log("haciendo fetch")
+                fetch("/post/delete", {
                     method: "POST",
-                    body: formData,
+                    body: JSON.stringify({ post_id: postId }),
                     headers: {
-                        "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                     },
                 })
                 .then((response) => response.json())
                 .then((data) => {
+                    console.log("se recibio respuesta")
                     if (data.status === "success") {
-                        console.log(data.is_following);
-                        followBtn.textContent = (data.action === "followed") ? "Unfollow" : "Follow";
-                        followersCountSpan.textContent = data.followers_count;
-                    } 
+                        const postElement = document.querySelector(`.post[data-post-id='${postId}']`);
+                        postElement.remove();
+                    }
                 });
-            });
+                closeModal();
+            }
+
         });
     </script>
+    <script type="module" src="{% static '/network/index.js' %}"></script>
 {% endblock %}

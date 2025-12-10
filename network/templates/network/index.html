@@ -7,19 +7,25 @@
         <div class="form-contianer">
             <form id="newPostForm">
                 {% csrf_token %}
-                <textarea name="content" id="formContent" placeholder="What's on your mind?"></textarea>
+                <textarea name="content" id="formContent" placeholder="What's on your mind?" required></textarea>
                 <button type="submit">Post</button>
             </form>
+        </div>
+    {% endif %}
+    {% if message %}
+        <div class="empty-message">
+            <h3>{{ message }}</h3>
         </div>
     {% endif %}
     <div id="posts-container">
         <div id="newPost" style="display: none;"></div>
         {% for post in posts %}
             <div class="post" data-post-id="{{ post.id }}">
-                <p><strong>{{ post.author.username }}</strong> says:</p>
+                <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
                 <p class="post-content">{{ post.content }}</p>
+                <p class="timestamp">{{ post.created_at }}</p>
                 <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
-                <button class="like-button">
+                <button class="like-button" id="likeBtn">
                     {% if user in post.likes.all %}
                         Unlike
                     {% else %}
