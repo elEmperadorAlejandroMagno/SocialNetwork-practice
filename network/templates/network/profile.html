@@ -3,8 +3,10 @@
 
 {% block body %}
     <h2>{{ profile_user.username }}</h2>
-    <p>Followers: <span id="followers-count">{{ profile_user.followers_count }}</span></p>
-    <p>Following: <span id="following-count">{{ profile_user.following_count }}</span></p>
+    <div class="d-flex align-items-center justify-content-center mb-3 gap-4" id="infoProfile">
+        <p>Followers: <span id="followers-count">{{ profile_user.followers_count }}</span></p>
+        <p>Following: <span id="following-count">{{ profile_user.following_count }}</span></p>
+    </div>
     {% if user != profile_user %}
         <form id="followForm">
             {% csrf_token %}

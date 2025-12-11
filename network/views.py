@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse
+from django.utils.formats import date_format
 import json
 
 from .models import User, Follow, Post
@@ -126,6 +127,8 @@ def new_post(request):
                     "author":  user.username,
                     "content": post.content,
                     "likes_count": post.likes_count(),
+                    # Formatear igual que en los templates de Django
+                    "created_at": date_format(post.created_at, format='N j, Y, P', use_l10n=True),
                 },
                 "is_author": True 
             }

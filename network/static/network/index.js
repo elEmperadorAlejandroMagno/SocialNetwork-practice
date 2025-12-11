@@ -27,31 +27,32 @@ document.addEventListener("DOMContentLoaded", function () {
             const LIKE_BTN = document.createElement("button");
             const TIMESTAMP = document.createElement("p");
             
+            // Clases para que coincida con el HTML renderizado en el servidor
             POST_DIV.className = "post";
             CONTENT_P.className = "post-content";
+            TIMESTAMP.className = "timestamp";
             LIKE_BTN.className = "like-button";
-            USERNAME_A.innerHTML = `<strong>${ post.author }</strong>`;
+            LIKE_BTN.id = "likeBtn";
+
+            USERNAME_A.innerHTML = `<strong>${ post.author }</strong> says:`;
             USERNAME_A.href = `/profile/${ post.author }`;
             CONTENT_P.textContent = post.content;
-            LIKES_P.innerHTML = `Likes: <span class="likes-count">${ post.likes_count }</span>`;
-            TIMESTAMP.textContent = `Posted at: ${ post.created_at }`;
+            LIKE_BTN.textContent = "Like";
+            LIKES_P.innerHTML = `Likes: <span class=\"likes-count\">${ post.likes_count }</span>`;
+            TIMESTAMP.textContent = `${ post.created_at }`;
             
             POST_DIV.setAttribute("data-post-id", post.id);
             POST_DIV.appendChild(USERNAME_A);
             POST_DIV.appendChild(CONTENT_P);
-            POST_DIV.appendChild(LIKES_P);
             POST_DIV.appendChild(TIMESTAMP);
+            POST_DIV.appendChild(LIKES_P);
+            POST_DIV.appendChild(LIKE_BTN);
 
             if (data.is_author) {
               const EDIT_BTN = document.createElement("button");
               EDIT_BTN.textContent = "Edit";
               EDIT_BTN.id = "editBtn";
               POST_DIV.appendChild(EDIT_BTN);
-
-              const DELETE_BTN = document.createElement("button");
-              DELETE_BTN.textContent = "Delete";
-              DELETE_BTN.id = "deleteBtn";
-              POST_DIV.appendChild(DELETE_BTN);
             }
             newPostContainer.prepend(POST_DIV);
             newPostContainer.style.display = "block";
