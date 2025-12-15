@@ -19,7 +19,7 @@
     {% endif %}
     <div id="posts-container">
         <div id="newPost" style="display: none;"></div>
-        {% for post in posts %}
+        {% for post in page_obj %}
             <div class="post" data-post-id="{{ post.id }}">
                 <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
                 <p class="post-content">{{ post.content }}</p>
@@ -37,6 +37,23 @@
                 {% endif %}
             </div>
         {% endfor %}
+        <div class="pagination d-flex justify-content-around">
+            <span>
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-dark rounded-pill text-light" href="?page={{ page_obj.previous_page_number }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}">Previous</a>
+                {% endif %}
+            </span>
+            <span>
+                {% if page_obj.paginator.num_pages > 1 %}
+                    <a href="">Page: {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</a>
+                {% endif %}
+            </span>
+            <span>
+                {% if page_obj.has_next %}
+                    <a class="btn btn-dark rounded-pill text-light" href="?page={{ page_obj.next_page_number }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}">Next</a>
+                {% endif %}
+            </span>
+        </div>
     </div>
 {% endblock %}
 {% block script %}

@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse
 from django.utils.formats import date_format
+from django.core.paginator import Paginator
 import json
 
 from .models import User, Follow, Post
@@ -16,6 +17,7 @@ from .utils import create_new_post, update_post, toggle_like, toggle_follow
 def index(request):
     if request.method == "GET":
         posts = None
+        page_number = request.GET.get('page')
         if request.user.is_authenticated:   
             filter_param = request.GET.get("filter")
             if filter_param == "following":
@@ -23,12 +25,18 @@ def index(request):
                 posts = Post.objects.filter(author__in=following_users).order_by("-created_at")
                 if posts.count() < 1:
                     return render(request, 'network/index.html', { "message": "No posts from followed users." })
+                paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
+                posts = paginator.get_page(page_number)
             else:
                 posts = Post.objects.all().order_by("-created_at")
+                paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
+                posts = paginator.get_page(page_number)
 
         else:
             posts = Post.objects.all().order_by("-created_at")
-    return render(request, "network/index.html", { "posts": posts })
+            paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
+            posts = paginator.get_page(page_number)
+    return render(request, "network/index.html", { "page_obj": posts })
 
 def login_view(request):
     if request.method == "POST":
@@ -223,12 +231,18 @@ def follow_unfollow(request):
     """
     if request.method == "POST":
         user = request.user
-        try:
-            data = json.loads(request.body)
-            username_to_follow = data.get("username")
-        except (json.JSONDecodeError, AttributeError):
-            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
-        
+        username_to_follow = None
+
+        # Support JSON body or form data without accessing body after POST parsing
+        if request.content_type == "application/json":
+            try:
+                data = json.loads(request.body)
+                username_to_follow = data.get("username")
+            except (json.JSONDecodeError, AttributeError):
+                return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        else:
+            username_to_follow = request.POST.get("username")
+
         try:
             followers_count, action = toggle_follow(user, username_to_follow)
         except ValueError:

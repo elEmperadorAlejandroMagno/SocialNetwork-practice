@@ -12,7 +12,7 @@
             {% csrf_token %}
             <input type="hidden" name="username" value="{{ profile_user.username }}">
         </form>
-        <button id="follow-btn" type="submit">
+        <button id="follow-btn" type="button">
             {% if is_following %}
                 Unfollow
             {% else %}
@@ -71,14 +71,12 @@
                         method: "POST",
                         body: formData,
                         headers: {
-                            "Content-Type": "application/json",
                             "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                         },
                     })
                     .then((response) => response.json())
                     .then((data) => {
                         if (data.status === "success") {
-                            console.log(data.is_following);
                             followBtn.textContent = (data.action === "followed") ? "Unfollow" : "Follow";
                             followersCountSpan.textContent = data.followers_count;
                         } 
