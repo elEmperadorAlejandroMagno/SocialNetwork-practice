@@ -29,3 +29,16 @@
   - textarea and button to write an create new post
 
 ### Pagination with django
+
+- Paginator
+  - Server side  (django.core.paginator -> Paginator )
+  - Client side (bootstrap pagination)
+
+### Notifications
+
+- Client side:
+  - Dropdown with Bootstrap
+  - Agregar contador de notificaciones no leídas
+- Server side: 
+  - Context Processor: Un context processor es una función que se ejecuta en cada request y agrega datos al contexto de todos los templates.
+  - Configuar context processor en settings.py: Templates -> Options -> contest-proccessors
