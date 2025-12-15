@@ -15,4 +15,5 @@ urlpatterns = [
     path("post/delete", views.delete_post, name="delete_post"),
     path("post/like", views.like_unlike, name="like_post"),
     path("follow", views.follow_unfollow, name="follow_unfollow"),
+    path("notifications/mark_as_read", views.mark_notifications_as_read, name="mark_notifications_as_read"),
 ]

@@ -39,6 +39,9 @@
 - Client side:
   - Dropdown with Bootstrap
   - Agregar contador de notificaciones no leídas
+  - Update is_read de las notificaciones al hacer :hover sobre la tarjeta de la notificacion
+  - Agregar condicionales y estilos manejando el update de is_read
 - Server side: 
   - Context Processor: Un context processor es una función que se ejecuta en cada request y agrega datos al contexto de todos los templates.
   - Configuar context processor en settings.py: Templates -> Options -> contest-proccessors
+  - Agregar {% url 'post_detail' n.post.id %} post_detail url and template to show post and comments

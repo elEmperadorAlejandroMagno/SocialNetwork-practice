@@ -1,4 +1,4 @@
-from .models import Post, User, Follow
+from .models import Post, User, Follow, Notification
 
 
 def create_new_post(user: User, content: str) -> Post:
@@ -26,8 +26,15 @@ def toggle_like(user: User, post_id: int) -> tuple[int, str]:
         # Si el like ya existía, lo eliminamos (unlike)
         like.delete()
         action: str = "unliked"
+        Notification.object.get(sender=user, receiver=post.author, post=post, notification_type='like').delete()
     else:
         action: str = "liked"
+        Notification.objects.create(
+            sender=user,
+            receiver=post.author,
+            notification_type='like',
+            post=post
+        )
 
     likes_count: int = post.likes_count()
     return likes_count, action
@@ -40,8 +47,14 @@ def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, bool]:
         # Si el follow ya existía, lo eliminamos (unfollow)
         follow.delete()
         action: str = "unfollowed"
+        Notification.object.get(sender=follower, receiver=user_to_follow, notification_type='follow').delete()
     else:
         action: str = "followed"
+        Notification.objects.create(
+            sender=follower,
+            receiver=user_to_follow,
+            notification_type='follow'
+        )
 
     followers_count: int = user_to_follow.followers_count()
     return followers_count, action

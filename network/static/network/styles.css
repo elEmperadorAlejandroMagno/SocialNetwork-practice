@@ -63,6 +63,11 @@ body {
   color: #ffffff;
 }
 
+/* notification */
+#cardNotification:hover {
+  background-color: #dddd;
+}
+
 /* Generic text & links */
 .body a {
   color: #198754;

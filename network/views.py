@@ -250,3 +250,24 @@ def follow_unfollow(request):
         except IntegrityError:
             return JsonResponse({"status": "error", "message": "Error processing follow"}, status=404)
         return JsonResponse({"status": "success", "followers_count": followers_count, "action": action})
+    
+@login_required
+def mark_notifications_as_read(request):
+    """
+    Marca todas las notificaciones del usuario autenticado como leídas.
+    
+    :param request: request data
+    :return: JsonResponse con el estado de la operación
+    """
+    if request.method == "POST":
+        user = request.user
+        notif_id = json.loads(request.body).get("id")
+        try:
+            notif = user.notifications.get(pk=notif_id)
+            notif.is_read = True
+            notif.save()
+            # eliminar después de marcar como leída
+            notif.delete()
+            return JsonResponse({"status": "success", "message": "All notifications marked as read"})
+        except IntegrityError:
+            return JsonResponse({"status": "error", "message": "Error marking notifications as read"}, status=404)
