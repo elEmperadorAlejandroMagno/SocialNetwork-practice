@@ -45,3 +45,25 @@ class Follow(models.Model):
     class Meta:
         # evita datos duplicados
         unique_together = ('follower', 'following')
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('like', 'Like'),
+        ('follow', 'Follow'),
+        ('comment', 'Comment'),
+    )
+
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_notifications")
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, null=True, blank=True)  # opcional
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def notification_read(self):
+        self.is_read = True
+        self.save()
+
+    def __str__(self):
+        return f"{self.sender} -> {self.receiver} ({self.notification_type})"
