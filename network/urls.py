@@ -14,6 +14,8 @@ urlpatterns = [
     path("post/edit", views.edit_post, name="edit_post"),
     path("post/delete", views.delete_post, name="delete_post"),
     path("post/like", views.like_unlike, name="like_post"),
+    path("post/new_comment", views.create_comment, name="new_comment"),
+    path("post/comment/delete", views.delete_comment, name="delete_comment"),
     path("follow", views.follow_unfollow, name="follow_unfollow"),
     path("notifications/mark_as_read", views.mark_notifications_as_read, name="mark_notifications_as_read"),
 ]

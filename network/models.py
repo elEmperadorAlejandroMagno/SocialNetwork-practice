@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
 # extender la clase User por defecto de Django
@@ -20,20 +22,28 @@ class Post(models.Model):
     def __str__(self):
         return f"Post by {self.author.username} at {self.created_at}"
     
-    def likes_count(self):
-        return self.likes.count()
     
 class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="likes")
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="likes")
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         # Un usuario solo puede dar like una vez
-        unique_together = ('user', 'post')  
+        unique_together = ('user', 'content_type', 'object_id')
+    
+    @classmethod
+    def likes_count(cls, model, id):
+        content_type = ContentType.objects.get_for_model(model)
+        return cls.objects.filter(content_type=content_type, object_id=id).count()
 
-    def __str__(self):
-        return f"{self.user.username} liked {self.post.id}"
+class Comment(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 # Following model
@@ -58,6 +68,7 @@ class Notification(models.Model):
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     post = models.ForeignKey('Post', on_delete=models.CASCADE, null=True, blank=True)  # opcional
+    comment = models.ForeignKey('Comment', on_delete=models.CASCADE, null=True, blank=True) #opcional
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 

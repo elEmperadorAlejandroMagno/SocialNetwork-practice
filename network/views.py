@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -10,9 +11,9 @@ from django.utils.formats import date_format
 from django.core.paginator import Paginator
 import json
 
-from .models import User, Follow, Post
+from .models import User, Follow, Post, Comment, Like
 
-from .utils import create_new_post, update_post, toggle_like, toggle_follow
+from .utils import create_new_post, update_post, toggle_like, toggle_follow, post_comment, del_comment, del_post
 
 def index(request):
     if request.method == "GET":
@@ -118,7 +119,7 @@ def profile(request, username):
         }
         return render(request, "network/profile.html", context)
 
-@login_required
+@login_required # type: ignore
 def new_post(request):
     if request.method == "POST":
         data = request.POST.get("content")
@@ -134,7 +135,7 @@ def new_post(request):
                     "id": post.id,
                     "author":  user.username,
                     "content": post.content,
-                    "likes_count": post.likes_count(),
+                    "likes_count": Like.likes_count("post", post.id),
                     # Formatear igual que en los templates de Django
                     "created_at": date_format(post.created_at, format='N j, Y, P', use_l10n=True),
                 },
@@ -174,17 +175,12 @@ def edit_post(request):
 @login_required
 def delete_post(request):
     if request.method == "POST":
+        user = request.user
+        data = json.loads(request.body)
+        post_id = data.get("post_id")
+
         try:
-            data = json.loads(request.body)
-            post_id = data.get("post_id")
-        except (json.JSONDecodeError, AttributeError):
-            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
-        
-        try:
-            post_to_delete = Post.objects.get(id=post_id)
-            if post_to_delete.author != request.user:
-                return JsonResponse({"status": "error", "message": "Unauthorized"}, status=403)
-            post_to_delete.delete()
+            del_post(user, post_id)
             messages.success(request, "Post deleted successfully!")
         except Post.DoesNotExist:
             messages.error(request, "Post not found.")
@@ -208,12 +204,13 @@ def like_unlike(request):
         user = request.user
         try:
             data = json.loads(request.body)
+            content_type = data.get("content_type")
             post_id = data.get("post_id")
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         
         try:
-            likes_count, action = toggle_like(user, post_id)
+            likes_count, action = toggle_like(user, content_type, post_id)
         except ValueError:
             return JsonResponse({"status": "error", "message": "Post not found"}, status=400)
         except IntegrityError:
@@ -271,3 +268,42 @@ def mark_notifications_as_read(request):
             return JsonResponse({"status": "success", "message": "All notifications marked as read"})
         except IntegrityError:
             return JsonResponse({"status": "error", "message": "Error marking notifications as read"}, status=404)
+        
+@login_required
+def create_comment(request):
+    if request.method == "POST":
+        user = request.user
+        data = json.loads(request.body)
+        post_id = data.get("post_id")
+        content = data.get("content")
+        try:
+            post = post_comment(user, post_id, content)
+            return JsonResponse({"status": "success", "message": "Comment added successfully!"})
+        except ValueError:
+            return JsonResponse({"status": "error", "message": "The text must be a valid string"}, status=404)
+        except IntegrityError:
+            return JsonResponse({"status": "error", "message": "Error adding comment"}, status=404)
+        except Post.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
+        
+@login_required
+def delete_comment(request):
+    if request.method == "POST":
+        comment_id = json.loads(request.body).get("id")
+        user = request.user
+        try:
+            del_comment(user, comment_id)
+            return JsonResponse({'status': 'success', 'message': 'Comment deleted successfully.'})
+        except IntegrityError:
+            return JsonResponse({'status': 'error', 'message': 'Error deleting comment.'}, status=400)
+        except Comment.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Comment not found.'}, status=404)
+        except PermissionDenied:
+            return JsonResponse({'status': 'error', 'message': 'You are not authorized to delete this comment.'}, status=403)
+        
+def post_details(request, post_id):
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Post not found.'}, status=404)
+    return render(request, 'network/post_details.html', {'post': post})

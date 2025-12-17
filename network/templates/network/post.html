@@ -1,0 +1,96 @@
+{% extends "network/layout.html" %}
+{% load static %}
+{% block body %}
+<div>
+  <div class="post" data-post-id="{{ post.id }}">
+      <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
+      <p class="post-content">{{ post.content }}</p>
+      <p class="timestamp">{{ post.created_at }}</p>
+      <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
+      <button class="like-button" id="postlikeBtn">
+          {% if user in post.likes.all %}
+              Unlike
+          {% else %}
+              Like
+          {% endif %}
+      </button>
+      {% if user == post.author %}
+        <button id="editBtn">Edit</button>
+      {% endif %}
+  </div>
+  <div class="comments">
+    {% for comment in post.comments %}
+      <div class="comment" data-id="{{ comment.id }}">
+        <p><strong>{{ comment.author.username }}</strong> says:</p>
+        <p class="comment-content">{{ comment.content }}</p>
+        <p class="timestamp">{{ comment.created_at }}</p>
+        <span>
+          <p>Likes: <span class="likes-count">{{ comment.likes.likes_count }}</span></p>
+          <button id="commentLikeBtn">
+            {% if user in comment.likes.all %}
+              Unlike
+            {% else %}
+              Like
+            {% endif %}
+          </button>
+        </span>
+        {% if user == comment.author %}
+          <button id="deleteBtn">Delete</button>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+{% block script %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          const deleteBtns = document.querySelectorAll("#deleteBtn");
+          const toggleLikeBtns = document.querySelectorAll("#ToggleLike");
+
+          deleteBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+              const commentId = btn.closest(".comment").getAttribute("data-id"); 
+              fetch("post/comment/delete", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  commentId: commentId,
+                }),
+                }).then(response => response.json())
+                .then(data => {
+                  if (data.success) {
+                    btn.closest(".comment").remove();
+                  }
+                });
+                })
+            })
+            
+          toggleLikeBtns.forEach(btn => {
+            btn.addEventListener("click", function () {
+              const commentId = btn.closest(".comment").getAttribute("data-id");
+              const likeCount = document.querySelector(`.likes-count`);
+
+              fetch("post/like", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                  commentId: commentId, 
+                  content_type: "comment" 
+                }),
+              }).then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  likeCount.textContent = data.likes_count;
+                }
+              });
+            })
+          })
+        });
+    </script>
+{% endblock %}

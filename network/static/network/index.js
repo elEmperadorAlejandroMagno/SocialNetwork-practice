@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let newPostForm = document.querySelector("#newPostForm");
   let newPostContainer = document.querySelector("#newPost");
   let editBtn = document.querySelectorAll("#editBtn");
-  let likeBtn = document.querySelectorAll("#likeBtn");
+  let postLikeBtn = document.querySelectorAll("#postLikeBtn");
 
   if (newPostForm) {
       newPostForm.addEventListener("submit", (e) => {
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
             CONTENT_P.className = "post-content";
             TIMESTAMP.className = "timestamp";
             LIKE_BTN.className = "like-button";
-            LIKE_BTN.id = "likeBtn";
+            LIKE_BTN.id = "postLikeBtn";
 
             USERNAME_A.innerHTML = `<strong>${ post.author }</strong> says:`;
             USERNAME_A.href = `/profile/${ post.author }`;
@@ -57,20 +57,23 @@ document.addEventListener("DOMContentLoaded", function () {
             newPostContainer.prepend(POST_DIV);
             newPostContainer.style.display = "block";
             editBtn = document.querySelectorAll("#editBtn");
-            likeBtn = document.querySelectorAll("#likeBtn");
+            postLikeBtn = document.querySelectorAll("#postLikeBtn");
           }
       });
     });
   }
 
-  if (likeBtn.length > 0) {
-    likeBtn.forEach((button) => {
+  if (postLikeBtn.length > 0) {
+    postLikeBtn.forEach((button) => {
       button.addEventListener("click", (e) => {
         const postDiv = e.target.closest(".post");
         const postId = postDiv.getAttribute("data-post-id");
         fetch(`/post/like`, {
           method: "POST",
-          body: JSON.stringify({ post_id: postId }),
+          body: JSON.stringify({ 
+            post_id: postId,
+            content_type: "post"
+          }),
           headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),

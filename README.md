@@ -10,6 +10,8 @@
 -[✔] edit post
   - Remplazar contenido por textarea y agregar boton de envio
 
+- Cambiar 'post/like' a nueva ruta solo 'like/' o manejar dos rutas distintas para likes en post y en comentarios
+
 ### Templates
 
 -[✔] Profile template
@@ -17,6 +19,7 @@
   - number of followers and follows
   - post of user
   - follow or unfollow btn for other users
+  - ❌ post detail template
 
 -[✔] All posts
   - username
