@@ -26,7 +26,7 @@ def toggle_like(user: User, post_id: int) -> tuple[int, str]:
         # Si el like ya existía, lo eliminamos (unlike)
         like.delete()
         action: str = "unliked"
-        Notification.object.get(sender=user, receiver=post.author, post=post, notification_type='like').delete()
+        Notification.objects.get(sender=user, receiver=post.author, post=post, notification_type='like').delete()
     else:
         action: str = "liked"
         Notification.objects.create(
@@ -39,7 +39,7 @@ def toggle_like(user: User, post_id: int) -> tuple[int, str]:
     likes_count: int = post.likes_count()
     return likes_count, action
 
-def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, bool]:
+def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, str]:
     user_to_follow: User = User.objects.get(username=username_to_follow)
 
     follow, created = Follow.objects.get_or_create(follower=follower, following=user_to_follow)
@@ -47,7 +47,7 @@ def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, bool]:
         # Si el follow ya existía, lo eliminamos (unfollow)
         follow.delete()
         action: str = "unfollowed"
-        Notification.object.get(sender=follower, receiver=user_to_follow, notification_type='follow').delete()
+        Notification.objects.get(sender=follower, receiver=user_to_follow, notification_type='follow').delete()
     else:
         action: str = "followed"
         Notification.objects.create(
