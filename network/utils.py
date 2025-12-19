@@ -1,12 +1,13 @@
 from .models import Post, User, Follow, Notification, Like, Comment
 from django.core.exceptions import PermissionDenied
+from django.contrib.contenttypes.models import ContentType
 
-CONTENT_TYPE = {
-    'post': Post,
-    'comment': Comment,
+CONTENT_TYPE = { 
+    "post": ContentType.objects.get_for_model(Post), 
+    "comment": ContentType.objects.get_for_model(Comment), 
 }
 
-def check_permission(user_action, user_authorized):
+def check_permission(user_action: User, user_authorized: User):
     if user_action != user_authorized:
         raise PermissionDenied("You are not authorized to perform this action.")
 
@@ -25,13 +26,14 @@ def update_post(post_id: int, new_content: str) -> Post:
     except Post.DoesNotExist:
         raise ValueError("Post not found")
     
-def del_post(user, post_id: int) -> None:
+def del_post(user: User, post_id: int) -> None:
     post_to_delete = Post.objects.get(id=post_id)
     check_permission(user, post_to_delete.author)
     post_to_delete.delete()
 
-def toggle_like(user, content_type, object_id) -> tuple[int, str]:
+def toggle_like(user: User, content_type: str, object_id: int) -> tuple[int, str]:
     action: str | None = None
+
     if Like.objects.filter(user=user, content_type=CONTENT_TYPE[content_type], object_id=object_id).exists():
         like = Like.objects.get(user=user, content_type=CONTENT_TYPE[content_type], object_id=object_id)
         like.delete()
@@ -40,7 +42,7 @@ def toggle_like(user, content_type, object_id) -> tuple[int, str]:
         like = Like.objects.create(user=user, content_type=CONTENT_TYPE[content_type], object_id=object_id)
         like.save()
         if content_type == 'post':
-            post = Post.objects.get(id=object_id)
+            post = Post.objects.get(pk=object_id)
             Notification.objects.create(
                 sender=user,
                 receiver=post.author,
@@ -48,7 +50,7 @@ def toggle_like(user, content_type, object_id) -> tuple[int, str]:
                 post=post
             )
         elif content_type == 'comment':
-            comment = Comment.objects.get(id=object_id).post
+            comment = Comment.objects.get(pk=object_id)
             Notification.objects.create(
                 sender=user,
                 receiver=comment.author,
@@ -56,7 +58,7 @@ def toggle_like(user, content_type, object_id) -> tuple[int, str]:
                 comment=comment,
             )
         action = "liked"
-    count = Like.objects.filter(content_type=content_type, object_id=object_id).count()
+    count = Like.likes_count(CONTENT_TYPE[content_type], object_id)
     return count, action
 
 def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, str]:
@@ -89,3 +91,6 @@ def del_comment(user: User, comment_id: int) -> None:
     comment: Comment = Comment.objects.get(pk=comment_id)
     check_permission(user, comment.author)
     comment.delete()
+
+def likes_count(model, id):
+    return Like.likes_count(CONTENT_TYPE[model], id)

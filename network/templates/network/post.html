@@ -47,7 +47,7 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
           const deleteBtns = document.querySelectorAll("#deleteBtn");
-          const toggleLikeBtns = document.querySelectorAll("#ToggleLike");
+          const toggleLikeBtns = document.querySelectorAll("#commentLikeBtn");
 
           deleteBtns.forEach(btn => {
             btn.addEventListener("click", () => {
@@ -74,13 +74,13 @@
               const commentId = btn.closest(".comment").getAttribute("data-id");
               const likeCount = document.querySelector(`.likes-count`);
 
-              fetch("post/like", {
+              fetch("post/comment/like", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ 
-                  commentId: commentId, 
+                  comment_id: commentId, 
                   content_type: "comment" 
                 }),
               }).then(response => response.json())

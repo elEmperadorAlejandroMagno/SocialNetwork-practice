@@ -39,14 +39,24 @@ class PostTests(TestCase):
 
     def test_like_unlike_post(self):
         # Dar like al post
-        like_response = self.client.post("/post/like", data=json.dumps({"post_id": self.post_id}), content_type="application/json")
+        like_response = self.client.post("/post/like", data=json.dumps({
+            "post_id": self.post_id, 
+            "content_type": "post"
+            }), content_type="application/json")
+        print(like_response.json())
         self.assertEqual(like_response.status_code, 200)
         self.assertEqual(like_response.json().get("action"), "liked")
         
         # Quitar like al post
-        unlike_response = self.client.post("/post/like", data=json.dumps({"post_id": self.post_id}), content_type="application/json")
+        unlike_response = self.client.post("/post/like", data=json.dumps({
+            "post_id": self.post_id, 
+            "content_type": "post"
+            }), content_type="application/json")
         self.assertEqual(unlike_response.status_code, 200)
         self.assertEqual(unlike_response.json().get("action"), "unliked")
+
+    def test_like_unilke_comment(self):
+        pass
 
     def test_follow_unfollow_user(self):
         # Seguir a un usuario

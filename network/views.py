@@ -13,7 +13,7 @@ import json
 
 from .models import User, Follow, Post, Comment, Like
 
-from .utils import create_new_post, update_post, toggle_like, toggle_follow, post_comment, del_comment, del_post
+from .utils import create_new_post, update_post, toggle_like, toggle_follow, post_comment, del_comment, del_post, likes_count
 
 def index(request):
     if request.method == "GET":
@@ -135,7 +135,7 @@ def new_post(request):
                     "id": post.id,
                     "author":  user.username,
                     "content": post.content,
-                    "likes_count": Like.likes_count("post", post.id),
+                    "likes_count": likes_count("post", post.id),
                     # Formatear igual que en los templates de Django
                     "created_at": date_format(post.created_at, format='N j, Y, P', use_l10n=True),
                 },
@@ -191,7 +191,7 @@ def delete_post(request):
         return JsonResponse({"status": "success", "message": "Post deleted"})
 
 @login_required
-def like_unlike(request):
+def like_unlike_in_post(request):
     """
     Recuperar user de la sesion y post id desde request para hacer un post
     en caso de que ya exista el like eliminarlo
@@ -205,17 +205,36 @@ def like_unlike(request):
         try:
             data = json.loads(request.body)
             content_type = data.get("content_type")
-            post_id = data.get("post_id")
+            post_id = int(data.get("post_id"))
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         
         try:
             likes_count, action = toggle_like(user, content_type, post_id)
-        except ValueError:
-            return JsonResponse({"status": "error", "message": "Post not found"}, status=400)
+        except ValueError as e:
+            return JsonResponse({"status": "error", "message": "Data invalid", "error": str(e)}, status=400)
         except IntegrityError:
-            return JsonResponse({"status": "error", "message": "Error processing like"}, status=404)
+            return JsonResponse({"status": "error", "message": "Error processing like"}, status=400)
+        except Post.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
         return JsonResponse({"status": "success", "likes_count": likes_count, "action": action})
+    
+@login_required
+def like_unlike_in_comment(request):
+    if request.method == "POST":
+        user = request.user
+        try:
+            data = json.loads(request.body)
+            content_type = data.get("content_type")
+            comment_id = data.get("comment_id")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        try:
+            likes_count, action = toggle_like(user, content_type, int(comment_id))
+        except Comment.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Comment not found"}, status=404)
+        return JsonResponse({"status": "success", "action": action, "likes_count": likes_count})
+
 
 @login_required
 def follow_unfollow(request):
