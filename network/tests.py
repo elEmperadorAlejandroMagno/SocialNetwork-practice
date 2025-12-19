@@ -23,6 +23,14 @@ class PostTests(TestCase):
         create_response = self.client.post("/post/new_post", {"content": "Contenido original"})
         self.post_id = create_response.json().get("post", {}).get("id")
 
+        create_comment_response = self.client.post("/post/new_comment", data=json.dumps({
+            "post_id": self.post_id, 
+            "content": "Este es un comentario"
+            }), content_type="application/json")
+        
+        self.comment_id = create_comment_response.json().get("new_comment", {}).get("id")
+
+
     def test_post_creation(self):
         response = self.client.post("/post/new_post", {"content": "Hola mundo"})
         self.assertEqual(response.status_code, 200)
@@ -43,7 +51,6 @@ class PostTests(TestCase):
             "post_id": self.post_id, 
             "content_type": "post"
             }), content_type="application/json")
-        print(like_response.json())
         self.assertEqual(like_response.status_code, 200)
         self.assertEqual(like_response.json().get("action"), "liked")
         
@@ -55,9 +62,6 @@ class PostTests(TestCase):
         self.assertEqual(unlike_response.status_code, 200)
         self.assertEqual(unlike_response.json().get("action"), "unliked")
 
-    def test_like_unilke_comment(self):
-        pass
-
     def test_follow_unfollow_user(self):
         # Seguir a un usuario
         follow_response = self.client.post("/follow", data=json.dumps({"username": "usuario_a_seguir"}), content_type="application/json")
@@ -68,6 +72,32 @@ class PostTests(TestCase):
         unfollow_response = self.client.post("/follow", data=json.dumps({"username": "usuario_a_seguir"}), content_type="application/json")
         self.assertEqual(unfollow_response.status_code, 200)
         self.assertEqual(unfollow_response.json().get("action"), "unfollowed")
+
+    def test_create_comment(self):
+        # Crear un comentario
+        comment_response = self.client.post("/post/new_comment", data=json.dumps({
+            "post_id": self.post_id, 
+            "content": "Este es un comentario"
+            }), content_type="application/json")
+        self.assertEqual(comment_response.status_code, 200)
+        self.assertEqual(comment_response.json().get("status"), "success")
+
+    def test_like_unlike_comment(self):
+        # Dar like al comentario        
+        like_reponse = self.client.post("/post/comment/like", data=json.dumps({
+            "comment_id": self.comment_id, 
+            "content_type": "comment"
+            }), content_type="application/json")
+        self.assertEqual(like_reponse.status_code, 200)
+        self.assertEqual(like_reponse.json().get("action"), "liked")
+
+        # Quitar like al comentario
+        unlike_response = self.client.post('/post/comment/like', data=json.dumps({
+            'comment_id': self.comment_id,
+            'content_type': 'comment'
+        }), content_type='application/json')
+        self.assertEqual(unlike_response.status_code, 200)
+        self.assertEqual(unlike_response.json().get('action'), 'unliked')
 
     def test_post_deletion(self):
         # Eliminar el post

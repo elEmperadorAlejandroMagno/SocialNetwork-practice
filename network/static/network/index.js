@@ -66,6 +66,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (postLikeBtn.length > 0) {
     postLikeBtn.forEach((button) => {
       button.addEventListener("click", (e) => {
+        console.log("click")
+        console.log("btn click")
         const postDiv = e.target.closest(".post");
         const postId = postDiv.getAttribute("data-post-id");
         fetch(`/post/like`, {
@@ -82,6 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
           .then((response) => response.json())
           .then((data) => {
             if (data.status === "success") {
+              console.log(data.likes_count)
               const likesCountSpan = postDiv.querySelector(".likes-count");
               likesCountSpan.textContent = data.likes_count;
               e.target.textContent = (data.action === "liked") ? "Unlike" : "Like";
@@ -141,5 +144,19 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Click on a post (outside of links/buttons) navigates to the post details page
+  const postsContainerEl = document.querySelector("#posts-container");
+  if (postsContainerEl) {
+    postsContainerEl.addEventListener("click", (e) => {
+      const postDiv = e.target.closest(".post");
+      if (!postDiv) return;
+      // If the click was on an interactive element, don't navigate
+      if (e.target.closest("a") || e.target.closest("button") || e.target.closest("input") || e.target.closest("textarea")) return;
+      const postId = postDiv.getAttribute("data-post-id");
+      if (postId) {
+        window.location.href = `/post/${postId}`;
+      }
+    });
+  }
 
 });

@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.db import models
 
 # extender la clase User por defecto de Django
@@ -18,6 +18,8 @@ class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # relación genérica para poder consultar likes desde Post (por ejemplo: post.likes.count())
+    likes = GenericRelation('Like')
 
     def __str__(self):
         return f"Post by {self.author.username} at {self.created_at}"
@@ -36,14 +38,14 @@ class Like(models.Model):
     
     @classmethod
     def likes_count(cls, model, id):
-        content_type = ContentType.objects.get_for_model(model)
-        return cls.objects.filter(content_type=content_type, object_id=id).count()
+        return cls.objects.filter(content_type=model, object_id=id).count()
 
 class Comment(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    likes = GenericRelation('Like')
 
 
 # Following model

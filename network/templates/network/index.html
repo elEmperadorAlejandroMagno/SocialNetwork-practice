@@ -21,20 +21,20 @@
         <div id="newPost" style="display: none;"></div>
         {% for post in page_obj %}
             <div class="post" data-post-id="{{ post.id }}">
-                <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
-                <p class="post-content">{{ post.content }}</p>
-                <p class="timestamp">{{ post.created_at }}</p>
-                <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
-                <button class="like-button" id="likeBtn">
-                    {% if user in post.likes.all %}
-                        Unlike
-                    {% else %}
-                        Like
+                    <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
+                    <p class="post-content">{{ post.content }}</p>
+                    <p class="timestamp">{{ post.created_at }}</p>
+                    <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
+                    <button class="like-button" id="postLikeBtn">
+                        {% if post.liked_by_user %}
+                            Unlike
+                        {% else %}
+                            Like
+                        {% endif %}
+                    </button>
+                    {% if user == post.author %}
+                        <button id="editBtn">Edit</button>
                     {% endif %}
-                </button>
-                {% if user == post.author %}
-                    <button id="editBtn">Edit</button>
-                {% endif %}
             </div>
         {% endfor %}
         <nav aria-label="Page navigation">

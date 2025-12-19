@@ -30,7 +30,7 @@
                 <p class="timestamp">{{ post.created_at }}</p>
                 <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
                 <button class="like-button" id="likeBtn">
-                    {% if user in post.likes.all %}
+                    {% if post.liked_by_user %}
                         Unlike
                     {% else %}
                         Like

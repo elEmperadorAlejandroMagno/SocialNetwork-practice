@@ -81,11 +81,11 @@ def toggle_follow(follower: User, username_to_follow: str) -> tuple[int, str]:
     followers_count: int = user_to_follow.followers_count()
     return followers_count, action
 
-def post_comment(user: User, post_id: int, content: str) -> bool:
+def post_comment(user: User, post_id: int, content: str) -> Comment:
     post: Post = Post.objects.get(id=post_id)
     comment: Comment = Comment.objects.create(author=user, post=post, content=content)
     comment.save()
-    return True
+    return comment
 
 def del_comment(user: User, comment_id: int) -> None:
     comment: Comment = Comment.objects.get(pk=comment_id)

@@ -37,6 +37,14 @@ def index(request):
             posts = Post.objects.all().order_by("-created_at")
             paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
             posts = paginator.get_page(page_number)
+    # Añadir flag para saber si el usuario actual dio like a cada post
+    if request.user.is_authenticated:
+        for p in posts:
+            p.liked_by_user = p.likes.filter(user=request.user).exists()
+    else:
+        for p in posts:
+            p.liked_by_user = False
+
     return render(request, "network/index.html", { "page_obj": posts })
 
 def login_view(request):
@@ -58,7 +66,7 @@ def login_view(request):
     else:
         return render(request, "network/login.html")
 
-@login_required
+@login_required # type: ignore
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse("index"))
@@ -112,6 +120,14 @@ def profile(request, username):
         if user.username != username:
             is_following = Follow.objects.filter(follower=user, following=profile_user).exists()
         posts = profile_user.posts.all().order_by("-created_at")
+        # marcar si cada post fue liked por el usuario autenticado
+        if request.user.is_authenticated:
+            for p in posts:
+                p.liked_by_user = p.likes.filter(user=request.user).exists()
+        else:
+            for p in posts:
+                p.liked_by_user = False
+
         context = {
             "profile_user": profile_user,
             "posts": posts,
@@ -119,7 +135,7 @@ def profile(request, username):
         }
         return render(request, "network/profile.html", context)
 
-@login_required # type: ignore
+@login_required # type: ignore # type: ignore
 def new_post(request):
     if request.method == "POST":
         data = request.POST.get("content")
@@ -147,7 +163,7 @@ def new_post(request):
             messages.error(request, "Error creating post. Invalid data.")
             return HttpResponseRedirect(reverse("index"))
 
-@login_required
+@login_required # type: ignore
 def edit_post(request):
     if request.method == "POST":
         try:
@@ -172,7 +188,7 @@ def edit_post(request):
             return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
         return JsonResponse({"status": "success", "new_content": updated_post.content})
     
-@login_required
+@login_required # type: ignore
 def delete_post(request):
     if request.method == "POST":
         user = request.user
@@ -190,7 +206,7 @@ def delete_post(request):
             return JsonResponse({"status": "error", "message": "Error deleting post"}, status=404)
         return JsonResponse({"status": "success", "message": "Post deleted"})
 
-@login_required
+@login_required # type: ignore
 def like_unlike_in_post(request):
     """
     Recuperar user de la sesion y post id desde request para hacer un post
@@ -218,25 +234,8 @@ def like_unlike_in_post(request):
         except Post.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
         return JsonResponse({"status": "success", "likes_count": likes_count, "action": action})
-    
-@login_required
-def like_unlike_in_comment(request):
-    if request.method == "POST":
-        user = request.user
-        try:
-            data = json.loads(request.body)
-            content_type = data.get("content_type")
-            comment_id = data.get("comment_id")
-        except (json.JSONDecodeError, AttributeError):
-            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
-        try:
-            likes_count, action = toggle_like(user, content_type, int(comment_id))
-        except Comment.DoesNotExist:
-            return JsonResponse({"status": "error", "message": "Comment not found"}, status=404)
-        return JsonResponse({"status": "success", "action": action, "likes_count": likes_count})
 
-
-@login_required
+@login_required # type: ignore
 def follow_unfollow(request):
     """
     Recuperar user de la sesion y usuario a seguir desde request para hacer un follow
@@ -267,7 +266,7 @@ def follow_unfollow(request):
             return JsonResponse({"status": "error", "message": "Error processing follow"}, status=404)
         return JsonResponse({"status": "success", "followers_count": followers_count, "action": action})
     
-@login_required
+@login_required # type: ignore
 def mark_notifications_as_read(request):
     """
     Marca todas las notificaciones del usuario autenticado como leídas.
@@ -288,16 +287,22 @@ def mark_notifications_as_read(request):
         except IntegrityError:
             return JsonResponse({"status": "error", "message": "Error marking notifications as read"}, status=404)
         
-@login_required
+@login_required # type: ignore
 def create_comment(request):
     if request.method == "POST":
         user = request.user
-        data = json.loads(request.body)
-        post_id = data.get("post_id")
-        content = data.get("content")
+        post_id = int(request.POST["post_id"])
+        content = request.POST["content"]
         try:
-            post = post_comment(user, post_id, content)
-            return JsonResponse({"status": "success", "message": "Comment added successfully!"})
+            commentObj = post_comment(user, post_id, content)
+            new_comment = {
+                "id": commentObj.id,
+                "author": user.username,
+                "content": commentObj.content,
+                "likes_count": likes_count("comment", commentObj.id),
+                "created_at": date_format(commentObj.created_at, format='N j, Y, P', use_l10n=True),
+            }
+            return JsonResponse({"status": "success", "message": "Comment added successfully!", "new_comment": new_comment})
         except ValueError:
             return JsonResponse({"status": "error", "message": "The text must be a valid string"}, status=404)
         except IntegrityError:
@@ -305,7 +310,23 @@ def create_comment(request):
         except Post.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
         
-@login_required
+@login_required # type: ignore
+def like_unlike_in_comment(request):
+    if request.method == "POST":
+        user = request.user
+        try:
+            data = json.loads(request.body)
+            content_type = data.get("content_type")
+            comment_id = int(data.get("comment_id"))
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        try:
+            likes_count, action = toggle_like(user, content_type, comment_id)
+        except Comment.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Comment not found"}, status=404)
+        return JsonResponse({"status": "success", "action": action, "likes_count": likes_count})
+        
+@login_required # type: ignore
 def delete_comment(request):
     if request.method == "POST":
         comment_id = json.loads(request.body).get("id")
@@ -323,6 +344,18 @@ def delete_comment(request):
 def post_details(request, post_id):
     try:
         post = Post.objects.get(pk=post_id)
+        comments = post.comments.all().order_by("-created_at")
     except Post.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Post not found.'}, status=404)
-    return render(request, 'network/post_details.html', {'post': post})
+
+    # marcar si el post y los comments fueron liked por el usuario actual
+    if request.user.is_authenticated:
+        post.liked_by_user = post.likes.filter(user=request.user).exists()
+        for c in comments:
+            c.liked_by_user = c.likes.filter(user=request.user).exists()
+    else:
+        post.liked_by_user = False
+        for c in comments:
+            c.liked_by_user = False
+
+    return render(request, 'network/post_details.html', {'post': post, "comments": comments})
