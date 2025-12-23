@@ -10,10 +10,12 @@ from django.http import JsonResponse
 from django.utils.formats import date_format
 from django.core.paginator import Paginator
 import json
+from dataclasses import asdict
+
 
 from .models import User, Follow, Post, Comment, Like
 
-from .utils import create_new_post, update_post, toggle_like, toggle_follow, post_comment, del_comment, del_post, likes_count
+from .network_controller import NetworkController
 
 def index(request):
     if request.method == "GET":
@@ -22,20 +24,17 @@ def index(request):
         if request.user.is_authenticated:   
             filter_param = request.GET.get("filter")
             if filter_param == "following":
-                following_users = [follow.following for follow in Follow.objects.filter(follower=request.user)]
-                posts = Post.objects.filter(author__in=following_users).order_by("-created_at")
+                posts = NetworkController.get_all_following_posts(request.user)
                 if posts.count() < 1:
                     return render(request, 'network/index.html', { "message": "No posts from followed users." })
                 paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
                 posts = paginator.get_page(page_number)
             else:
-                posts = Post.objects.all().order_by("-created_at")
-                paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
+                paginator = Paginator(NetworkController.get_all_posts(request.user), 10)  # Mostrar 10 posts por página
                 posts = paginator.get_page(page_number)
 
         else:
-            posts = Post.objects.all().order_by("-created_at")
-            paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
+            paginator = Paginator(NetworkController.get_all_posts(request.user) , 10)  # Mostrar 10 posts por página
             posts = paginator.get_page(page_number)
     # Añadir flag para saber si el usuario actual dio like a cada post
     if request.user.is_authenticated:
@@ -119,14 +118,7 @@ def profile(request, username):
         is_following = False
         if user.username != username:
             is_following = Follow.objects.filter(follower=user, following=profile_user).exists()
-        posts = profile_user.posts.all().order_by("-created_at")
-        # marcar si cada post fue liked por el usuario autenticado
-        if request.user.is_authenticated:
-            for p in posts:
-                p.liked_by_user = p.likes.filter(user=request.user).exists()
-        else:
-            for p in posts:
-                p.liked_by_user = False
+        posts = NetworkController.get_user_posts(profile_user)
 
         context = {
             "profile_user": profile_user,
@@ -138,27 +130,19 @@ def profile(request, username):
 @login_required # type: ignore # type: ignore
 def new_post(request):
     if request.method == "POST":
-        data = request.POST.get("content")
         user = request.user
+        if request.content_type == "application/json":
+            data = json.loads(request.body).get("content")
+        else:       
+            data = request.POST.get("content")
+
         if len(data) < 1:
             messages.error(request, "Post content cannot be empty.")
             return JsonResponse({"status": "error", "message": "Post content cannot be empty" }, status=400)
         try:
-            post = create_new_post(user, data)
-            response_data = {
-                "status": "success",
-                "post": {
-                    "id": post.id,
-                    "author":  user.username,
-                    "content": post.content,
-                    "likes_count": likes_count("post", post.id),
-                    # Formatear igual que en los templates de Django
-                    "created_at": date_format(post.created_at, format='N j, Y, P', use_l10n=True),
-                },
-                "is_author": True 
-            }
+            response_data = NetworkController.create_new_post(user, data)
             messages.success(request, "Post created successfully!")
-            return JsonResponse(response_data)
+            return JsonResponse(asdict(response_data))
         except ValueError:
             messages.error(request, "Error creating post. Invalid data.")
             return HttpResponseRedirect(reverse("index"))
@@ -170,15 +154,11 @@ def edit_post(request):
             data = json.loads(request.body)
             post_id = data.get("post_id")
             new_content = data.get("content")
-
-            post_to_update = Post.objects.get(pk=post_id)
-            if post_to_update.author != request.user:
-                return JsonResponse({"status": "error", "message": "Unauthorized"}, status=403)
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         
         try:
-            updated_post = update_post(post_id, new_content)
+            updated_post = NetworkController.update_post(post_id, new_content)
             messages.success(request, "Post updated successfully!")
         except ValueError:
             messages.error(request, "Error updating post. Invalid data.")
@@ -191,12 +171,14 @@ def edit_post(request):
 @login_required # type: ignore
 def delete_post(request):
     if request.method == "POST":
-        user = request.user
-        data = json.loads(request.body)
-        post_id = data.get("post_id")
-
         try:
-            del_post(user, post_id)
+            user = request.user
+            data = json.loads(request.body)
+            post_id = data.get("post_id")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+        try:
+            NetworkController.del_post(user, post_id)
             messages.success(request, "Post deleted successfully!")
         except Post.DoesNotExist:
             messages.error(request, "Post not found.")
@@ -226,7 +208,7 @@ def like_unlike_in_post(request):
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         
         try:
-            likes_count, action = toggle_like(user, content_type, post_id)
+            likes_count, action = NetworkController.toggle_like(user, content_type, post_id)
         except ValueError as e:
             return JsonResponse({"status": "error", "message": "Data invalid", "error": str(e)}, status=400)
         except IntegrityError:
@@ -259,7 +241,7 @@ def follow_unfollow(request):
             username_to_follow = request.POST.get("username")
 
         try:
-            followers_count, action = toggle_follow(user, username_to_follow)
+            followers_count, action = NetworkController.toggle_follow(user, username_to_follow)
         except ValueError:
             return JsonResponse({"status": "error", "message": "User not found"}, status=400)
         except IntegrityError:
@@ -276,7 +258,10 @@ def mark_notifications_as_read(request):
     """
     if request.method == "POST":
         user = request.user
-        notif_id = json.loads(request.body).get("id")
+        try:
+            notif_id = json.loads(request.body).get("id")
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         try:
             notif = user.notifications.get(pk=notif_id)
             notif.is_read = True
@@ -291,18 +276,16 @@ def mark_notifications_as_read(request):
 def create_comment(request):
     if request.method == "POST":
         user = request.user
-        post_id = int(request.POST["post_id"])
-        content = request.POST["content"]
+        if request.content_type == "application/json":
+            data = json.loads(request.body)
+            post_id = int(data.get("post_id"))
+            content = data.get("content")
+        else:
+            post_id = int(request.POST["post_id"])
+            content = request.POST["content"]
         try:
-            commentObj = post_comment(user, post_id, content)
-            new_comment = {
-                "id": commentObj.id,
-                "author": user.username,
-                "content": commentObj.content,
-                "likes_count": likes_count("comment", commentObj.id),
-                "created_at": date_format(commentObj.created_at, format='N j, Y, P', use_l10n=True),
-            }
-            return JsonResponse({"status": "success", "message": "Comment added successfully!", "new_comment": new_comment})
+            new_comment_response = NetworkController.post_comment(user, post_id, content)
+            return JsonResponse(asdict(new_comment_response))
         except ValueError:
             return JsonResponse({"status": "error", "message": "The text must be a valid string"}, status=404)
         except IntegrityError:
@@ -321,7 +304,7 @@ def like_unlike_in_comment(request):
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         try:
-            likes_count, action = toggle_like(user, content_type, comment_id)
+            likes_count, action = NetworkController.toggle_like(user, content_type, comment_id)
         except Comment.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Comment not found"}, status=404)
         return JsonResponse({"status": "success", "action": action, "likes_count": likes_count})
@@ -332,7 +315,7 @@ def delete_comment(request):
         comment_id = json.loads(request.body).get("id")
         user = request.user
         try:
-            del_comment(user, comment_id)
+            NetworkController.del_comment(user, comment_id)
             return JsonResponse({'status': 'success', 'message': 'Comment deleted successfully.'})
         except IntegrityError:
             return JsonResponse({'status': 'error', 'message': 'Error deleting comment.'}, status=400)
@@ -343,19 +326,8 @@ def delete_comment(request):
         
 def post_details(request, post_id):
     try:
-        post = Post.objects.get(pk=post_id)
-        comments = post.comments.all().order_by("-created_at")
+        post, comments = NetworkController.get_post_by_id(post_id)
     except Post.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Post not found.'}, status=404)
-
-    # marcar si el post y los comments fueron liked por el usuario actual
-    if request.user.is_authenticated:
-        post.liked_by_user = post.likes.filter(user=request.user).exists()
-        for c in comments:
-            c.liked_by_user = c.likes.filter(user=request.user).exists()
-    else:
-        post.liked_by_user = False
-        for c in comments:
-            c.liked_by_user = False
 
     return render(request, 'network/post_details.html', {'post': post, "comments": comments})

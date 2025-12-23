@@ -20,8 +20,8 @@ class PostTests(TestCase):
         self.client.login(username="test_user", password="testpass")
         
         # Crear un post primero
-        create_response = self.client.post("/post/new_post", {"content": "Contenido original"})
-        self.post_id = create_response.json().get("post", {}).get("id")
+        create_post_response = self.client.post("/post/new_post", {"content": "Contenido original"}, content_type="application/json")
+        self.post_id = create_post_response.json().get("new_post", {}).get("id")
 
         create_comment_response = self.client.post("/post/new_comment", data=json.dumps({
             "post_id": self.post_id, 
