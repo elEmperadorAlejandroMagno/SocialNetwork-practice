@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from .models import Post, User, Follow, Notification, Like, Comment
-from .utils import check_permission, CONTENT_TYPE, likes_count, load_like_state
+from ..models import Post, User, Follow, Notification, Like, Comment
+from ..utils import check_permission, CONTENT_TYPE, likes_count, load_like_state
 from django.db.models.query import QuerySet
 from django.utils.formats import date_format
 
@@ -32,7 +32,9 @@ class NewCommentResponse:
 class NetworkModel:
 
     @staticmethod
-    def get_all_posts(user) -> QuerySet[Post]:
+    def get_all_posts(user: User, filter: str|None = None) -> QuerySet[Post]:
+        if filter == "following":
+            return NetworkModel.get_all_following_posts(user)
         posts = Post.objects.all().order_by("-created_at")
         return load_like_state(posts, user)
     
@@ -159,6 +161,7 @@ class NetworkModel:
             ),
             is_author = True
         )
+        #! Crear notificacion de comentario sender = user, reciever = post.author
         return new_comment
 
     @staticmethod
@@ -166,3 +169,11 @@ class NetworkModel:
         comment: Comment = Comment.objects.get(pk=comment_id)
         check_permission(user, comment.author)
         comment.delete()
+
+    @staticmethod
+    def mark_notifications_as_read(user: User, notif_id: int) -> None:
+        notif = Notification.objects.get(pk=notif_id)
+        check_permission(user, notif.receiver)
+        notif.is_read = True
+        notif.save()
+        notif.delete()

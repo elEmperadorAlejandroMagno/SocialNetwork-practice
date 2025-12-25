@@ -15,7 +15,7 @@ from dataclasses import asdict
 
 from .models import User, Follow, Post, Comment, Like
 
-from .network_controller import NetworkController
+from .controller.network_controller import NetworkController
 
 def index(request):
     if request.method == "GET":
@@ -23,28 +23,16 @@ def index(request):
         page_number = request.GET.get('page')
         if request.user.is_authenticated:   
             filter_param = request.GET.get("filter")
-            if filter_param == "following":
-                posts = NetworkController.get_all_following_posts(request.user)
-                if posts.count() < 1:
-                    return render(request, 'network/index.html', { "message": "No posts from followed users." })
-                paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
-                posts = paginator.get_page(page_number)
-            else:
-                paginator = Paginator(NetworkController.get_all_posts(request.user), 10)  # Mostrar 10 posts por página
-                posts = paginator.get_page(page_number)
-
+            posts = NetworkController.get_all_posts(request.user, filter_param)
+            if posts.count() < 1:
+                return render(request, 'network/index.html', { "message": "No posts from followed users." })
+            paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
+            posts = paginator.get_page(page_number)
         else:
             paginator = Paginator(NetworkController.get_all_posts(request.user) , 10)  # Mostrar 10 posts por página
             posts = paginator.get_page(page_number)
-    # Añadir flag para saber si el usuario actual dio like a cada post
-    if request.user.is_authenticated:
-        for p in posts:
-            p.liked_by_user = p.likes.filter(user=request.user).exists()
-    else:
-        for p in posts:
-            p.liked_by_user = False
 
-    return render(request, "network/index.html", { "page_obj": posts })
+        return render(request, "network/index.html", { "page_obj": posts })
 
 def login_view(request):
     if request.method == "POST":
@@ -263,11 +251,7 @@ def mark_notifications_as_read(request):
         except (json.JSONDecodeError, AttributeError):
             return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
         try:
-            notif = user.notifications.get(pk=notif_id)
-            notif.is_read = True
-            notif.save()
-            # eliminar después de marcar como leída
-            notif.delete()
+            NetworkController.mark_notifications_as_read(user, notif_id)
             return JsonResponse({"status": "success", "message": "All notifications marked as read"})
         except IntegrityError:
             return JsonResponse({"status": "error", "message": "Error marking notifications as read"}, status=404)

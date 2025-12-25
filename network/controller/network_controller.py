@@ -1,11 +1,11 @@
-from .network_model import NetworkModel
-from .models import User
+from ..model.network_model import NetworkModel
+from ..models import User
 
 
 class NetworkController:
     @staticmethod
-    def get_all_posts(user: User):
-        return NetworkModel.get_all_posts(user)
+    def get_all_posts(user: User, filter: str|None = None):
+        return NetworkModel.get_all_posts(user, filter)
     
     @staticmethod
     def get_all_following_posts(user: User):
@@ -47,3 +47,6 @@ class NetworkController:
     def del_comment(user: User, comment_id: int):
         return NetworkModel.del_comment(user, comment_id)
     
+    @staticmethod
+    def mark_notifications_as_read(user: User, notif_id: int):
+        return NetworkModel.mark_notifications_as_read(user, notif_id)
