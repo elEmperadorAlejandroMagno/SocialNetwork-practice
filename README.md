@@ -52,5 +52,7 @@
 
 -[✔] Agregar {% url 'post_detail' n.post.id %} post_detail url and template to show post and comments
 
--[ ] Crear y enviar notificación cuando usuario comente en un post de otro usuario 
+-[✔] Crear y enviar notificación cuando usuario comente en un post de otro usuario 
+
+-[ ] Utilizar notification.message para renderizar mensaje en la bandeja de notificaciones
 

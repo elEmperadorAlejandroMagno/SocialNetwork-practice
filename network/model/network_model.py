@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from ..models import Post, User, Follow, Notification, Like, Comment
-from ..utils import check_permission, CONTENT_TYPE, likes_count, load_like_state
+from ..utils import check_permission, CONTENT_TYPE, likes_count, load_like_state, NOTIFICATION_MESSAGES
 from django.db.models.query import QuerySet
 from django.utils.formats import date_format
 
@@ -105,20 +105,24 @@ class NetworkModel:
             like.save()
             if content_type == 'post':
                 post = Post.objects.get(pk=object_id)
-                Notification.objects.create(
+                notification = Notification.objects.create(
                     sender=user,
                     receiver=post.author,
-                    notification_type='like',
+                    notification_type='like_post',
                     post=post
                 )
+
             elif content_type == 'comment':
                 comment = Comment.objects.get(pk=object_id)
-                Notification.objects.create(
+                notification = Notification.objects.create(
                     sender=user,
                     receiver=comment.author,
-                    notification_type='like',
+                    notification_type='like_comment',
                     comment=comment,
                 )
+                
+            notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
+            notification.save()
             action = "liked"
         count = Like.likes_count(CONTENT_TYPE[content_type], object_id)
         return count, action
@@ -135,11 +139,13 @@ class NetworkModel:
             Notification.objects.get(sender=follower, receiver=user_to_follow, notification_type='follow').delete()
         else:
             action: str = "followed"
-            Notification.objects.create(
+            notification = Notification.objects.create(
                 sender=follower,
                 receiver=user_to_follow,
                 notification_type='follow'
             )
+            notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
+            notification.save()
 
         followers_count: int = user_to_follow.followers_count()
         return followers_count, action
@@ -161,7 +167,15 @@ class NetworkModel:
             ),
             is_author = True
         )
-        #! Crear notificacion de comentario sender = user, reciever = post.author
+        notification = Notification.objects.create(
+            sender=user,
+            receiver=post.author,
+            notification_type='comment',
+            comment=comment,
+        )
+        notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
+        notification.save()                
+
         return new_comment
 
     @staticmethod

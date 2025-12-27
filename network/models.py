@@ -61,7 +61,8 @@ class Follow(models.Model):
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
-        ('like', 'Like'),
+        ('like_post', 'Like Post'),
+        ('like_comment', 'Like Comment'),
         ('follow', 'Follow'),
         ('comment', 'Comment'),
     )
@@ -71,6 +72,7 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     post = models.ForeignKey('Post', on_delete=models.CASCADE, null=True, blank=True)  # opcional
     comment = models.ForeignKey('Comment', on_delete=models.CASCADE, null=True, blank=True) #opcional
+    message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 

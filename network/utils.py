@@ -7,6 +7,13 @@ CONTENT_TYPE = {
     "comment": ContentType.objects.get_for_model(Comment), 
 }
 
+NOTIFICATION_MESSAGES = {
+    "like_post": "liked your post",
+    "like_comment": "liked your comment",
+    "follow": "started following you",
+    "comment": "commented on your post"
+}
+
 def check_permission(user_action: User, user_authorized: User):
     if user_action != user_authorized:
         raise PermissionDenied("You are not authorized to perform this action.")
