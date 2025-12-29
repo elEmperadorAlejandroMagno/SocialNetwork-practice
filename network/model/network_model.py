@@ -26,10 +26,50 @@ class NewCommentResponse:
     status: str
     new_comment: BaseResponse
     is_author: bool
+
+@dataclass
+class NotificationData:
+    sender: User
+    reciever: User
+    notification_type: str
+    content: Post | Comment | None = None
     
 
 
 class NetworkModel:
+
+    @staticmethod
+    def create_notification(data: NotificationData) -> Notification:
+        if data.notification_type == 'like_post':
+                notification = Notification.objects.create(
+                    sender=data.sender,
+                    receiver=data.reciever,
+                    notification_type=data.notification_type,
+                    post=data.content
+                )
+
+        elif data.notification_type == 'like_comment':
+                notification = Notification.objects.create(
+                    sender=data.sender,
+                    receiver=data.reciever,
+                    notification_type= data.notification_type,
+                    comment=data.content,
+                )
+        elif data.notification_type == 'follow':
+                notification = Notification.objects.create(
+                    sender=data.sender,
+                    receiver=data.reciever,
+                    notification_type=data.notification_type
+                )
+
+        elif data.notification_type == 'comment':
+            notification = Notification.objects.create(
+                sender=data.sender,
+                receiver=data.reciever,
+                notification_type=data.notification_type,
+                comment=data.content,
+            )
+        return notification
 
     @staticmethod
     def get_all_posts(user: User, filter: str|None = None) -> QuerySet[Post]:
@@ -103,24 +143,12 @@ class NetworkModel:
         else:
             like = Like.objects.create(user=user, content_type=CONTENT_TYPE[content_type], object_id=object_id)
             like.save()
-            if content_type == 'post':
-                post = Post.objects.get(pk=object_id)
-                notification = Notification.objects.create(
-                    sender=user,
-                    receiver=post.author,
-                    notification_type='like_post',
-                    post=post
-                )
-
-            elif content_type == 'comment':
-                comment = Comment.objects.get(pk=object_id)
-                notification = Notification.objects.create(
-                    sender=user,
-                    receiver=comment.author,
-                    notification_type='like_comment',
-                    comment=comment,
-                )
-                
+            notification = NetworkModel.create_notification(data = NotificationData(
+                sender= user,
+                reciever= like.content_object.author,
+                notification_type= f"like_{content_type}",
+                content= like.content_object
+            ))
             notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
             notification.save()
             action = "liked"
@@ -139,11 +167,11 @@ class NetworkModel:
             Notification.objects.get(sender=follower, receiver=user_to_follow, notification_type='follow').delete()
         else:
             action: str = "followed"
-            notification = Notification.objects.create(
-                sender=follower,
-                receiver=user_to_follow,
-                notification_type='follow'
-            )
+            notification = NetworkModel.create_notification(data = NotificationData(
+                sender= follower,
+                reciever= user_to_follow,
+                notification_type= "follow",
+            ))
             notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
             notification.save()
 
@@ -167,12 +195,12 @@ class NetworkModel:
             ),
             is_author = True
         )
-        notification = Notification.objects.create(
-            sender=user,
-            receiver=post.author,
-            notification_type='comment',
-            comment=comment,
-        )
+        notification = NetworkModel.create_notification(data = NotificationData(
+            sender= user,
+            reciever= post.author,
+            notification_type= "comment",
+            content= comment
+        ))
         notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
         notification.save()                
 
