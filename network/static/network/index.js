@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
   };
   // Add event listeners or any other JavaScript code here if needed
   let newPostForm = document.querySelector("#newPostForm");
-  let newPostContainer = document.querySelector("#newPost");
+  const POSTS_CONTAINER = document.querySelector("#posts-container");
   let editBtn = document.querySelectorAll("#editBtn");
   let postLikeBtn = document.querySelectorAll("#postLikeBtn");
 
@@ -186,12 +186,12 @@ function add_post(post, is_author = false, position = "bottom") {
 
     // 🔹 Aquí decides si va arriba o abajo
     if (position === "top") {
-        newPostContainer.prepend(POST_DIV);   // nuevo post → arriba
+        POSTS_CONTAINER.prepend(POST_DIV);   // nuevo post → arriba
     } else {
-        newPostContainer.appendChild(POST_DIV); // infinite scroll → abajo
+        POSTS_CONTAINER.appendChild(POST_DIV); // infinite scroll → abajo
     }
 
-    newPostContainer.style.display = "block";
+    POSTS_CONTAINER.style.display = "block";
 
     // Actualizar referencias
     editBtn = document.querySelectorAll("#editBtn");

@@ -18,7 +18,6 @@
         </div>
     {% endif %}
     <div id="posts-container">
-        <div id="newPost" style="display: none;"></div>
         {% for post in page_obj %}
             <div class="post" data-post-id="{{ post.id }}">
                     <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>

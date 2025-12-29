@@ -58,6 +58,7 @@
 
 -[✔] cambiar pagination a infinitescroll
 
--[ ] Los post de infinitescroll se deben cargar al final del contenedor
--[ ] Agregar loading feedback 
+-[ ] Agregar loading feedback loading screen para new post y carga de nuevos posts con infinite scroll
+
+
 
