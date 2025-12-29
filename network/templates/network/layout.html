@@ -36,44 +36,18 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-right p-2" id="dropdownNotificationsList" style="width: 300px;">
                                 {% for n in notifications %}
-                                    <li>
-                                        {% if n.notification_type == "like" %}
-                                            <a href="#post_detail" class="text-decoration-none notification-link" data-id="{{ n.id }}" data-is_read="{{ n.is_read }}">
-                                                <div class="card mb-2" id="cardNotification">
-                                                    <div class="card-header text-white p-2 text-center">
-                                                        <small class="text-muted">{{ n.created_at|timesince }} ago</small>
-                                                    </div>
-                                                    <div class="card-body d-flex flex-column p-2">
-                                                        {% if not n.is_read %}
-                                                            <span class="w-100 text-center new-label">
-                                                                <strong class="text-primary">New</strong>
-                                                            </span>
-                                                        {% endif %}
-                                                        <p>
-                                                            <strong>{{ n.sender.username }}</strong> liked your post
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        {% elif n.notification_type == "follow" %}
-                                            <a href="{% url 'profile' n.sender.id %}" class="text-decoration-none notification-link" data-id="{{ n.id }}" data-is_read="{{ n.is_read }}">
-                                                <div class="card mb-2" id="cardNotification">
-                                                <div class="card-header text-white p-2 text-center">
-                                                    <small class="text-muted">{{ n.created_at|timesince }} ago</small>
-                                                </div>
-                                                <div class="card-body d-flex flex-column p-2">
-                                                    {% if not n.is_read %}
-                                                        <span class="w-100 text-center">
-                                                            <strong class="text-primary">New</strong>
-                                                        </span>
-                                                    {% endif %}
-                                                    <p>
-                                                        <strong>{{ n.sender.username }}</strong> is following you now
-                                                    </p>
-                                                </div>                                            
+                                    {% if n.is_read %}
+                                        <li class="notification-link n-read" data-id="{{ n.id }}">
+                                    {% else %}
+                                        <li class="notification-link" data-id="{{ n.id }}">
+                                            <span class="new-label">🔔 New</span>
+                                    {% endif %}
+                                            <div class="card">
+                                                <p>{{ n.sender }}</p>
+                                                <p>{{ n.message }}</p>
+                                                <p>{{ n.created_at }}</p>
                                             </div>
-                                        {% endif %}
-                                    </li>
+                                        </li>
                                 {% empty %}
                                     <li><span class="text-muted">No tienes notificaciones nuevas</span></li>
                                 {% endfor %}
@@ -104,19 +78,22 @@
 <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const dropdown = document.getElementById('dropdownNotificationsList');
+                let isLoading = false;
 
                 // Escuchamos eventos dentro del dropdown
                 dropdown.addEventListener('mouseover', (event) => {
                     console.log('Dropdown hovered');
                     const link = event.target.closest('.notification-link');
                     if (!link) return; // si no es un link, salimos
+                    if (isLoading) return; // si ya está cargando, sal
+                    isLoading = true;
 
                     const card = link.querySelector('.card');
-                    const newLabel = card?.querySelector('.new-label');
+                    const newLabel = link.querySelector('.new-label');
+                    const isRead = link.classList.contains('n-read');
                     const notificationId = link.dataset.id;
-                    const isRead = link.dataset.is_read === 'True';
 
-                    if (isRead) return; // si ya está leído, salimos
+                    if (isRead) return isLoading = false; // si ya está leído, salimos
                     fetch('/notifications/mark_as_read', {
                         method: 'POST',
                         headers: {
@@ -129,8 +106,9 @@
                         if (response.ok) {
                             if (newLabel) {
                                 newLabel.remove();
-                                link.dataset.is_read = 'True';
+                                link.classList.add('n-read');
                             }
+                            isLoading = false;
                         } else {
                             console.error('Error marking notification as read');
                         }

@@ -30,7 +30,7 @@ class NewCommentResponse:
 @dataclass
 class NotificationData:
     sender: User
-    reciever: User
+    receiver: User
     notification_type: str
     content: Post | Comment | None = None
     
@@ -43,7 +43,7 @@ class NetworkModel:
         if data.notification_type == 'like_post':
                 notification = Notification.objects.create(
                     sender=data.sender,
-                    receiver=data.reciever,
+                    receiver=data.receiver,
                     notification_type=data.notification_type,
                     post=data.content
                 )
@@ -51,21 +51,21 @@ class NetworkModel:
         elif data.notification_type == 'like_comment':
                 notification = Notification.objects.create(
                     sender=data.sender,
-                    receiver=data.reciever,
+                    receiver=data.receiver,
                     notification_type= data.notification_type,
                     comment=data.content,
                 )
         elif data.notification_type == 'follow':
                 notification = Notification.objects.create(
                     sender=data.sender,
-                    receiver=data.reciever,
+                    receiver=data.receiver,
                     notification_type=data.notification_type
                 )
 
         elif data.notification_type == 'comment':
             notification = Notification.objects.create(
                 sender=data.sender,
-                receiver=data.reciever,
+                receiver=data.receiver,
                 notification_type=data.notification_type,
                 comment=data.content,
             )
@@ -150,7 +150,7 @@ class NetworkModel:
             like.save()
             notification = NetworkModel.create_notification(data = NotificationData(
                 sender= user,
-                reciever= like.content_object.author, #type:ignore
+                receiver= like.content_object.author, #type:ignore
                 notification_type= f"like_{content_type}",
                 content= like.content_object
             ))
@@ -174,7 +174,7 @@ class NetworkModel:
             action: str = "followed"
             notification = NetworkModel.create_notification(data = NotificationData(
                 sender= follower,
-                reciever= user_to_follow,
+                receiver= user_to_follow,
                 notification_type= "follow",
             ))
             notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
@@ -202,7 +202,7 @@ class NetworkModel:
         )
         notification = NetworkModel.create_notification(data = NotificationData(
             sender= user,
-            reciever= post.author,
+            receiver= post.author,
             notification_type= "comment",
             content= comment
         ))

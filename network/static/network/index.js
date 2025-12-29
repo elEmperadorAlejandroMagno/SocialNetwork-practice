@@ -1,5 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
 
+  let isLoading = false;
+
   window.onscroll = () => {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
         fetchInifiteScroll();
@@ -14,6 +16,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (newPostForm) {
       newPostForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      if (isLoading) return;
+      isLoading = true;
       const formData = new FormData(newPostForm);
       fetch("/post/new_post", {
         method: "POST",
@@ -25,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const post = data.new_post;
             // Clear the textarea
             newPostForm.reset();
+            isLoading = false;
             add_post(post, data.is_author, "top");
           }
       });
@@ -34,8 +39,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (postLikeBtn.length > 0) {
     postLikeBtn.forEach((button) => {
       button.addEventListener("click", (e) => {
-        console.log("click")
-        console.log("btn click")
+        if (isLoading) return;
+        isLoading = true;
         const postDiv = e.target.closest(".post");
         const postId = postDiv.getAttribute("data-post-id");
         fetch(`/post/like`, {
@@ -56,6 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
               const likesCountSpan = postDiv.querySelector(".likes-count");
               likesCountSpan.textContent = data.likes_count;
               e.target.textContent = (data.action === "liked") ? "Unlike" : "Like";
+              isLoading = false;
             }
           });
       });
@@ -131,6 +137,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const quantity = 10;
 
   function fetchInifiteScroll() {
+    if (isLoading) return; // evita peticiones simultáneas 
+    isLoading = true;
+
     let starts = counter
     let ends = starts + quantity - 1
     fetch('posts?starts=' + String(starts) + '&ends=' + String(ends), {
@@ -144,6 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log(data.posts)
         data.posts.forEach( post => add_post(post, false, "bottom"))
         counter = ends + 1
+        isLoading = false;
       }
     })
   }
