@@ -12,6 +12,10 @@ class NetworkController:
         return NetworkModel.get_all_following_posts(user)
     
     @staticmethod
+    def get_slice_posts(user: User, starts: int, ends: int):
+        return NetworkModel.get_slice_posts(user, starts, ends)
+    
+    @staticmethod
     def get_user_posts(user: User):
         return NetworkModel.get_user_posts(user)
     

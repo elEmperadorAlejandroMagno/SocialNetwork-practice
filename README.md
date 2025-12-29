@@ -56,3 +56,8 @@
 
 -[ ] Utilizar notification.message para renderizar mensaje en la bandeja de notificaciones
 
+-[✔] cambiar pagination a infinitescroll
+
+-[ ] Los post de infinitescroll se deben cargar al final del contenedor
+-[ ] Agregar loading feedback 
+

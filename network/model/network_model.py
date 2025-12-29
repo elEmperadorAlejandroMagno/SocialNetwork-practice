@@ -75,13 +75,18 @@ class NetworkModel:
     def get_all_posts(user: User, filter: str|None = None) -> QuerySet[Post]:
         if filter == "following":
             return NetworkModel.get_all_following_posts(user)
-        posts = Post.objects.all().order_by("-created_at")
+        posts = Post.objects.all().order_by("-created_at")[:10]
         return load_like_state(posts, user)
     
     @staticmethod
     def get_all_following_posts(user: User) -> QuerySet[Post]:
         following_users = [follow.following for follow in Follow.objects.filter(follower=user)]
         posts = Post.objects.filter(author__in=following_users).order_by("-created_at")
+        return load_like_state(posts, user)
+    
+    @staticmethod
+    def get_slice_posts(user: User, starts: int, ends: int) -> QuerySet[Post]:
+        posts = Post.objects.all().order_by("-created_at")[starts:ends]
         return load_like_state(posts, user)
     
     @staticmethod
@@ -145,7 +150,7 @@ class NetworkModel:
             like.save()
             notification = NetworkModel.create_notification(data = NotificationData(
                 sender= user,
-                reciever= like.content_object.author,
+                reciever= like.content_object.author, #type:ignore
                 notification_type= f"like_{content_type}",
                 content= like.content_object
             ))

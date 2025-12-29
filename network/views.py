@@ -20,19 +20,22 @@ from .controller.network_controller import NetworkController
 def index(request):
     if request.method == "GET":
         posts = None
-        page_number = request.GET.get('page')
         if request.user.is_authenticated:   
             filter_param = request.GET.get("filter")
             posts = NetworkController.get_all_posts(request.user, filter_param)
             if posts.count() < 1:
                 return render(request, 'network/index.html', { "message": "No posts from followed users." })
-            paginator = Paginator(posts, 10)  # Mostrar 10 posts por página
-            posts = paginator.get_page(page_number)
         else:
-            paginator = Paginator(NetworkController.get_all_posts(request.user) , 10)  # Mostrar 10 posts por página
-            posts = paginator.get_page(page_number)
+            posts= NetworkController.get_all_posts(request.user)
 
         return render(request, "network/index.html", { "page_obj": posts })
+    
+def get_posts(request):
+    starts = int(request.GET.get("starts"))
+    ends = int(request.GET.get("ends"))
+    posts = NetworkController.get_slice_posts(request.user, starts, ends).values() # no devuelve el objeto modificado con likes_loaded
+    return JsonResponse({"status": "success", "posts": list(posts)}, safe=False)
+
 
 def login_view(request):
     if request.method == "POST":

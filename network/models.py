@@ -8,10 +8,10 @@ from django.db import models
 class User(AbstractUser):
     
     def followers_count(self):
-        return self.followers.count()
+        return self.followers.count() #type:ignore
     
     def following_count(self):
-        return self.following.count()
+        return self.following.count() #type:ignore
 
 # POST model
 class Post(models.Model):
