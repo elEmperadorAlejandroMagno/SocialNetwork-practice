@@ -22,7 +22,7 @@
             <div class="post" data-post-id="{{ post.id }}">
                     <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
                     <p class="post-content">{{ post.content }}</p>
-                    <p class="timestamp">{{ post.created_at }}</p>
+                    <p class="timestamp">{{ post.formated_created_at }}</p>
                     <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
                     <button class="like-button" id="postLikeBtn">
                         {% if post.liked_by_user %}
@@ -36,7 +36,7 @@
                     {% endif %}
             </div>
         {% endfor %}
-        <nav aria-label="Page navigation">
+        <!-- <nav aria-label="Page navigation">
             <ul class="pagination justify-content-center">
                 {% if page_obj.has_previous %}
                 <li class="page-item mr-2">
@@ -58,7 +58,7 @@
                 </li>
                 {% endif %}
             </ul>
-        </nav>
+        </nav> -->
     </div>
 {% endblock %}
 {% block script %}

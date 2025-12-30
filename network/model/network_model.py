@@ -114,7 +114,7 @@ class NetworkModel:
                 content= post.content,
                 likes_count= likes_count("post", post.pk),
                 # Formatear igual que en los templates de Django
-                created_at= date_format(post.created_at, format='N j, Y, P', use_l10n=True),
+                created_at= post.formated_created_at,
             ),
             is_author= True 
         )
@@ -196,7 +196,7 @@ class NetworkModel:
                 author = user.username,
                 content = comment.content,
                 likes_count = likes_count("comment", comment.pk),
-                created_at = date_format(comment.created_at, format='N j, Y, P', use_l10n=True),
+                created_at = comment.formated_created_at,
             ),
             is_author = True
         )

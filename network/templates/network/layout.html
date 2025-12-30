@@ -36,16 +36,12 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-right p-2" id="dropdownNotificationsList" style="width: 300px;">
                                 {% for n in notifications %}
-                                    {% if n.is_read %}
-                                        <li class="notification-link n-read" data-id="{{ n.id }}">
-                                    {% else %}
                                         <li class="notification-link" data-id="{{ n.id }}">
                                             <span class="new-label">🔔 New</span>
-                                    {% endif %}
                                             <div class="card">
                                                 <p>{{ n.sender }}</p>
                                                 <p>{{ n.message }}</p>
-                                                <p>{{ n.created_at }}</p>
+                                                <p>{{ n.formated_created_at }}</p>
                                             </div>
                                         </li>
                                 {% empty %}

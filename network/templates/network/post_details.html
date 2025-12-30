@@ -33,7 +33,7 @@
       <div class="comment" data-id="{{ comment.id }}">
         <p><strong>{{ comment.author.username }}</strong> says:</p>
         <p class="comment-content">{{ comment.content }}</p>
-        <p class="timestamp">{{ comment.created_at }}</p>
+        <p class="timestamp">{{ comment.formated_created_at }}</p>
         <span>
           <p>Likes: <span class="likes-count">{{ comment.likes.count }}</span></p>
           <button id="commentLikeBtn">

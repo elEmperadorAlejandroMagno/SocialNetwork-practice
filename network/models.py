@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.db import models
+from django.utils.formats import date_format
 
 # extender la clase User por defecto de Django
 # configurar en settings.py
@@ -20,6 +21,10 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # relación genérica para poder consultar likes desde Post (por ejemplo: post.likes.count())
     likes = GenericRelation('Like')
+
+    @property
+    def formated_created_at(self):
+        return date_format(self.created_at, format='N j, Y, P', use_l10n=True)
 
     def __str__(self):
         return f"Post by {self.author.username} at {self.created_at}"
@@ -46,6 +51,10 @@ class Comment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     likes = GenericRelation('Like')
+
+    @property
+    def formated_created_at(self):
+        return date_format(self.created_at, format='N j, Y, P', use_l10n=True)
 
 
 # Following model
@@ -75,6 +84,10 @@ class Notification(models.Model):
     message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+
+    @property
+    def formated_created_at(self):
+        return date_format(self.created_at, format='N j, Y, P', use_l10n=True)
 
     def notification_read(self):
         self.is_read = True
