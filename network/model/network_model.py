@@ -2,30 +2,6 @@ from dataclasses import dataclass
 from ..models import Post, User, Follow, Notification, Like, Comment
 from ..utils import check_permission, CONTENT_TYPE, likes_count, load_like_state, NOTIFICATION_MESSAGES
 from django.db.models.query import QuerySet
-from django.utils.formats import date_format
-
-@dataclass
-class BaseResponse:
-    id: int
-    author: str
-    content: str
-    likes_count: int
-    created_at: str
-
-@dataclass
-class NewPostResponse:    
-    """
-    Representa la estructura de la respuesta al crear un nuevo post.
-    """
-    status: str
-    new_post: BaseResponse
-    is_author: bool
-
-@dataclass
-class NewCommentResponse:
-    status: str
-    new_comment: BaseResponse
-    is_author: bool
 
 @dataclass
 class NotificationData:
@@ -73,9 +49,11 @@ class NetworkModel:
 
     @staticmethod
     def get_all_posts(user: User, filter: str|None = None) -> QuerySet[Post]:
+        posts = None
         if filter == "following":
-            return NetworkModel.get_all_following_posts(user)
-        posts = Post.objects.all().order_by("-created_at")[:10]
+            posts = NetworkModel.get_all_following_posts(user)
+        else:
+            posts = Post.objects.all().order_by("-created_at")[:10]
         return load_like_state(posts, user)
     
     @staticmethod
@@ -96,29 +74,18 @@ class NetworkModel:
     
 
     @staticmethod
-    def get_post_by_id(post_id: int) -> tuple[Post, QuerySet[Comment]]:
+    def get_post_by_id(user: User, post_id: int) -> tuple[Post, list]:
         post = Post.objects.get(id=post_id)
         comments = post.comments.all().order_by("-created_at") #type: ignore
+        comments = load_like_state(comments, user)
+        post = load_like_state(post, user)
         return post, comments
     
     @staticmethod
-    def create_new_post(user: User, content: str) -> NewPostResponse:
+    def create_new_post(user: User, content: str) -> Post:
         post: Post = Post.objects.create(author=user, content=content)
         post.save()
-
-        response_data = NewPostResponse(
-            status= "success",
-            new_post = BaseResponse(
-                id = post.pk,
-                author=  user.username,
-                content= post.content,
-                likes_count= likes_count("post", post.pk),
-                # Formatear igual que en los templates de Django
-                created_at= post.formated_created_at,
-            ),
-            is_author= True 
-        )
-        return response_data
+        return post
 
     @staticmethod
     def update_post(post_id: int, new_content: str) -> Post:
@@ -184,22 +151,10 @@ class NetworkModel:
         return followers_count, action
 
     @staticmethod
-    def post_comment(user: User, post_id: int, content: str) -> NewCommentResponse:
+    def post_comment(user: User, post_id: int, content: str) -> Comment:
         post: Post = Post.objects.get(id=post_id)
         comment: Comment = Comment.objects.create(author=user, post=post, content=content)
         comment.save()
-
-        new_comment = NewCommentResponse( 
-            status = "success",
-            new_comment = BaseResponse(
-                id = comment.pk,
-                author = user.username,
-                content = comment.content,
-                likes_count = likes_count("comment", comment.pk),
-                created_at = comment.formated_created_at,
-            ),
-            is_author = True
-        )
         notification = NetworkModel.create_notification(data = NotificationData(
             sender= user,
             receiver= post.author,
@@ -209,7 +164,7 @@ class NetworkModel:
         notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
         notification.save()                
 
-        return new_comment
+        return comment
 
     @staticmethod
     def del_comment(user: User, comment_id: int) -> None:

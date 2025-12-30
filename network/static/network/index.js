@@ -178,7 +178,7 @@ function add_post(post, is_author = false, position = "bottom") {
     CONTENT_P.textContent = post.content;
     LIKE_BTN.textContent = "Like";
     LIKES_P.innerHTML = `Likes: <span class="likes-count">${ post.likes_count }</span>`;
-    TIMESTAMP.textContent = `${ post.created_at }`;
+    TIMESTAMP.textContent = `${ post.formated_created_at }`;
 
     POST_DIV.setAttribute("data-post-id", post.id);
     POST_DIV.appendChild(USERNAME_A);

@@ -1,6 +1,7 @@
 from .models import Post, User, Follow, Notification, Like, Comment
 from django.core.exceptions import PermissionDenied
 from django.contrib.contenttypes.models import ContentType
+from django.utils.formats import date_format
 
 CONTENT_TYPE = { 
     "post": ContentType.objects.get_for_model(Post), 
@@ -27,3 +28,8 @@ def load_like_state(model_data, user):
         for data in model_like_state_loaded:
             data.liked_by_user = data.likes.filter(user=user).exists()
     return model_like_state_loaded
+
+# def format_created_at_attribute(data):
+#     for post in data:
+#         post["created_at"] = date_format(post["created_at"], format='N j, Y, P', use_l10n=True)
+#     return data

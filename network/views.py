@@ -7,14 +7,14 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse
-# from django.utils.formats import date_format
-# from django.core.paginator import Paginator
 import json
-from dataclasses import asdict
 
-
-from .models import User, Follow, Post, Comment, Like
-
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response 
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import User, Follow, Post, Comment
+from .serializers import PostSerializer, CommentSerializer
 from .controller.network_controller import NetworkController
 
 def index(request):
@@ -23,8 +23,6 @@ def index(request):
         if request.user.is_authenticated:   
             filter_param = request.GET.get("filter")
             posts = NetworkController.get_all_posts(request.user, filter_param)
-            if posts.count() < 1:
-                return render(request, 'network/index.html', { "message": "No posts from followed users." })
         else:
             posts= NetworkController.get_all_posts(request.user)
 
@@ -33,8 +31,8 @@ def index(request):
 def get_posts(request):
     starts = int(request.GET.get("starts"))
     ends = int(request.GET.get("ends"))
-    posts = NetworkController.get_slice_posts(request.user, starts, ends).values() # no devuelve el objeto modificado con likes_loaded
-    return JsonResponse({"status": "success", "posts": list(posts)}, safe=False)
+    posts = NetworkController.get_slice_posts(request.user, starts, ends) # no devuelve el objeto modificado con likes_loaded
+    return JsonResponse({"status": "success", "posts": posts}, safe=False)
 
 
 def login_view(request):
@@ -118,25 +116,23 @@ def profile(request, username):
         }
         return render(request, "network/profile.html", context)
 
-@login_required # type: ignore # type: ignore
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def new_post(request):
-    if request.method == "POST":
         user = request.user
-        if request.content_type == "application/json":
-            data = json.loads(request.body).get("content")
-        else:       
-            data = request.POST.get("content")
+        content = request.data
 
-        if len(data) < 1:
+        if len(content) < 1:
             messages.error(request, "Post content cannot be empty.")
-            return JsonResponse({"status": "error", "message": "Post content cannot be empty" }, status=400)
+            return Response({"status": "error", "message": "Post content cannot be empty" }, status=status.HTTP_400_BAD_REQUEST)
         try:
-            response_data = NetworkController.create_new_post(user, data)
+            new_post = NetworkController.create_new_post(user, content)
+            serializer = PostSerializer(new_post, context={"request": request})
             messages.success(request, "Post created successfully!")
-            return JsonResponse(asdict(response_data))
+            return Response({ "status": "success", "new_post": serializer.data }, status=status.HTTP_201_CREATED)
         except ValueError:
             messages.error(request, "Error creating post. Invalid data.")
-            return HttpResponseRedirect(reverse("index"))
+            return Response({ "status": "error", "message": "Error triying to create a comment. Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
 
 @login_required # type: ignore
 def edit_post(request):
@@ -259,26 +255,33 @@ def mark_notifications_as_read(request):
         except IntegrityError:
             return JsonResponse({"status": "error", "message": "Error marking notifications as read"}, status=404)
         
-@login_required # type: ignore
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def create_comment(request):
     if request.method == "POST":
         user = request.user
-        if request.content_type == "application/json":
-            data = json.loads(request.body)
-            post_id = int(data.get("post_id"))
-            content = data.get("content")
-        else:
-            post_id = int(request.POST["post_id"])
-            content = request.POST["content"]
+        data = request.data
+        post_id = data.get("post_id")
+        content = data.get("content")
+        if not post_id: 
+            return Response({"status": "error", "message": "Falta el post_id"}, status=status.HTTP_400_BAD_REQUEST) 
+        try: 
+            post_id = int(post_id) 
+        except ValueError: 
+            return Response({"status": "error", "message": "post_id inválido"}, status=status.HTTP_400_BAD_REQUEST) 
+        if not content or len(content.strip()) == 0: 
+            return Response({"status": "error", "message": "El comentario no puede estar vacío"}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
-            new_comment_response = NetworkController.post_comment(user, post_id, content)
-            return JsonResponse(asdict(new_comment_response))
+            new_comment = NetworkController.post_comment(user, post_id, content)
+            serializer = CommentSerializer(new_comment, context={"request": request})
+            return Response({ "status": "success", "new_comment": serializer.data }, status=status.HTTP_201_CREATED)
         except ValueError:
-            return JsonResponse({"status": "error", "message": "The text must be a valid string"}, status=404)
+            return Response({"status": "error", "message": "The text must be a valid string"}, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError:
-            return JsonResponse({"status": "error", "message": "Error adding comment"}, status=404)
+            return Response({"status": "error", "message": "Error adding comment"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Post.DoesNotExist:
-            return JsonResponse({"status": "error", "message": "Post not found"}, status=404)
+            return Response({"status": "error", "message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
         
 @login_required # type: ignore
 def like_unlike_in_comment(request):
@@ -313,7 +316,7 @@ def delete_comment(request):
         
 def post_details(request, post_id):
     try:
-        post, comments = NetworkController.get_post_by_id(post_id)
+        post, comments = NetworkController.get_post_by_id(request.user, post_id)
     except Post.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Post not found.'}, status=404)
 

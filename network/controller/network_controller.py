@@ -20,8 +20,8 @@ class NetworkController:
         return NetworkModel.get_user_posts(user)
     
     @staticmethod
-    def get_post_by_id(post_id: int):
-        return NetworkModel.get_post_by_id(post_id)
+    def get_post_by_id(user: User, post_id: int):
+        return NetworkModel.get_post_by_id(user, post_id)
     
     @staticmethod
     def create_new_post(user: User, content: str):

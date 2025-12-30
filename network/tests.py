@@ -33,12 +33,12 @@ class PostTests(TestCase):
 
     def test_post_creation(self):
         response = self.client.post("/post/new_post", {"content": "Hola mundo"})
-        self.assertEqual(response.status_code, 200)
-
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json().get("status"), "success")
     
     def test_post_editing(self):
         # Editar el post
-        edit_response = self.client.post("/post/edit", data=json.dumps({
+        edit_response = self.client.post("/post/edit", json.dumps({
             "post_id": self.post_id, 
             "content": "Contenido editado"
             }), content_type="application/json")
@@ -75,12 +75,12 @@ class PostTests(TestCase):
 
     def test_create_comment(self):
         # Crear un comentario
-        comment_response = self.client.post("/post/new_comment", data=json.dumps({
+        response = self.client.post("/post/new_comment", data=json.dumps({
             "post_id": self.post_id, 
             "content": "Este es un comentario"
             }), content_type="application/json")
-        self.assertEqual(comment_response.status_code, 200)
-        self.assertEqual(comment_response.json().get("status"), "success")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json().get("status"), "success")
 
     def test_like_unlike_comment(self):
         # Dar like al comentario        

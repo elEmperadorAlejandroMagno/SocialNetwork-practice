@@ -35,6 +35,10 @@
                         <button id="editBtn">Edit</button>
                     {% endif %}
             </div>
+            {% empty %}
+                <div class="empty-message">
+                    <h3>No posts available.</h3>
+                </div>
         {% endfor %}
         <!-- <nav aria-label="Page navigation">
             <ul class="pagination justify-content-center">
