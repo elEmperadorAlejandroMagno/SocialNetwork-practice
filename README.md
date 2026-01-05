@@ -54,11 +54,12 @@
 
 -[✔] Crear y enviar notificación cuando usuario comente en un post de otro usuario 
 
--[ ] Utilizar notification.message para renderizar mensaje en la bandeja de notificaciones
+-[✔] Utilizar notification.message para renderizar mensaje en la bandeja de notificaciones
 
 -[✔] cambiar pagination a infinitescroll
 
--[ ] Agregar loading feedback loading screen para new post y carga de nuevos posts con infinite scroll
+-[EN PROGRESO] Agregar loading feedback loading screen para new post y carga de nuevos posts con infinite scroll
+-[BUG] edit_post form de index.html
 
 
 

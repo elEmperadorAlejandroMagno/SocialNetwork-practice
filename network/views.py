@@ -32,6 +32,8 @@ def get_posts(request):
     starts = int(request.GET.get("starts"))
     ends = int(request.GET.get("ends"))
     posts = NetworkController.get_slice_posts(request.user, starts, ends) # no devuelve el objeto modificado con likes_loaded
+    serializer = PostSerializer(posts, many=True, context={"request": request})
+    posts = serializer.data 
     return JsonResponse({"status": "success", "posts": posts}, safe=False)
 
 
@@ -120,7 +122,7 @@ def profile(request, username):
 @permission_classes([IsAuthenticated])
 def new_post(request):
         user = request.user
-        content = request.data
+        content = request.data.get("content")
 
         if len(content) < 1:
             messages.error(request, "Post content cannot be empty.")

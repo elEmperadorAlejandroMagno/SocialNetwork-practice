@@ -57,6 +57,7 @@
     </div>
 {% endblock %}
 {% block script %}
+    <script src="{% static '/network/utils.js' %}" type="module"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const followForm = document.querySelector("#followForm");
@@ -67,6 +68,7 @@
                 followBtn.addEventListener("click", function (e) {
                     e.preventDefault();
                     const formData = new FormData(followForm);
+                    showBtnLoader(followBtn);
                     fetch("/follow", {
                         method: "POST",
                         body: formData,
@@ -79,7 +81,8 @@
                         if (data.status === "success") {
                             followBtn.textContent = (data.action === "followed") ? "Unfollow" : "Follow";
                             followersCountSpan.textContent = data.followers_count;
-                        } 
+                        }
+                        hiddeBtnLoader(followBtn);
                     });
                 });
             }

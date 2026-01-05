@@ -27,6 +27,7 @@
         </div>
         <button class="btn btn-dark" type="submit">Publish</button>
       </form>
+      <div data-loader="form" class="spinner" style="display:none;"></div>
     </div>
     <div class="comments-container">
       {% for comment in comments %}
@@ -55,7 +56,9 @@
 
 {% endblock %}
 {% block script %}
-    <script>
+    <script type="module">
+    import { showLoader, hideLoader, showBtnLoader, hideBtnLoader } from "{% static 'network/utils.js' %}";
+
         document.addEventListener("DOMContentLoaded", function () {
           const commentContainer = document.querySelector(".comments-container");
           const newCommentForm = document.querySelector("#newComment");
@@ -63,6 +66,7 @@
           newCommentForm.addEventListener("submit", function (e) {
             e.preventDefault();
             const newForm = new FormData(newCommentForm);
+            showLoader();
             fetch("/post/new_comment", {
               method: "POST",
               body: newForm,
@@ -72,6 +76,7 @@
             }).then(response => response.json())
             .then(data => {
               if (data.status === 'success') {
+                hiddeLoader();
                 const newComment = document.createElement("div");
                 newComment.classList.add("comment");
                 const comment = data.new_comment
@@ -79,7 +84,7 @@
                 newComment.innerHTML = `
                           <p><strong>${ comment.author }</strong> says:</p>
                           <p class="comment-content">${ comment.content }</p>
-                          <p class="timestamp">${ comment.created_at }</p>
+                          <p class="timestamp">${ comment.formated_created_at}</p>
                           <span>
                             <p>Likes: <span class="likes-count">${ comment.likes_count }</span></p>
                             <button id="commentLikeBtn">Like</button>
@@ -125,6 +130,7 @@
                 const commentEl = likeBtn.closest('.comment');
                 const commentId = commentEl.getAttribute('data-id');
                 const likeCount = commentEl.querySelector('.likes-count');
+                showBtnLoader(likeBtn);
 
                 fetch('/post/comment/like', {
                   method: 'POST',
@@ -142,6 +148,7 @@
                   } else {
                     console.error('Error toggling comment like:', data);
                   }
+                  hiddeBtnLoader(likeBtn);
                 })
                 .catch(err => console.error(err));
                 return;
@@ -156,6 +163,7 @@
               const postDiv = e.target.closest('.post');
               const postId = postDiv.getAttribute('data-post-id');
               const likesCountSpan = postDiv.querySelector('.likes-count');
+              showLoader(postLikeBtn);
 
               fetch('/post/like', {
                 method: 'POST',
@@ -173,6 +181,7 @@
                 } else {
                   console.error('Error toggling post like:', data);
                 }
+                hiddeLoader(postLikeBtn);
               })
               .catch(err => console.error(err));
             });

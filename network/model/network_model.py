@@ -15,13 +15,17 @@ class NotificationData:
 class NetworkModel:
 
     @staticmethod
-    def create_notification(data: NotificationData) -> Notification:
+    def create_notification(data: NotificationData) -> Notification | None:
+        if data.receiver == data.sender:
+            return None
+
         if data.notification_type == 'like_post':
                 notification = Notification.objects.create(
                     sender=data.sender,
                     receiver=data.receiver,
                     notification_type=data.notification_type,
-                    post=data.content
+                    post=data.content,
+                    message=f"{data.sender.username}, {NOTIFICATION_MESSAGES[data.notification_type]}"
                 )
 
         elif data.notification_type == 'like_comment':
@@ -30,12 +34,14 @@ class NetworkModel:
                     receiver=data.receiver,
                     notification_type= data.notification_type,
                     comment=data.content,
+                    message=f"{data.sender.username}, {NOTIFICATION_MESSAGES[data.notification_type]}"
                 )
         elif data.notification_type == 'follow':
                 notification = Notification.objects.create(
                     sender=data.sender,
                     receiver=data.receiver,
-                    notification_type=data.notification_type
+                    notification_type=data.notification_type,
+                    message=f"{data.sender.username}, {NOTIFICATION_MESSAGES[data.notification_type]}"
                 )
 
         elif data.notification_type == 'comment':
@@ -44,7 +50,9 @@ class NetworkModel:
                 receiver=data.receiver,
                 notification_type=data.notification_type,
                 comment=data.content,
+                message=f"{data.sender.username}, {NOTIFICATION_MESSAGES[data.notification_type]}"
             )
+        notification.save()
         return notification
 
     @staticmethod
@@ -75,11 +83,11 @@ class NetworkModel:
 
     @staticmethod
     def get_post_by_id(user: User, post_id: int) -> tuple[Post, list]:
-        post = Post.objects.get(id=post_id)
+        post = Post.objects.get(pk=post_id)
         comments = post.comments.all().order_by("-created_at") #type: ignore
         comments = load_like_state(comments, user)
-        post = load_like_state(post, user)
-        return post, comments
+        post = load_like_state([post], user)
+        return post[0], comments
     
     @staticmethod
     def create_new_post(user: User, content: str) -> Post:
@@ -121,8 +129,6 @@ class NetworkModel:
                 notification_type= f"like_{content_type}",
                 content= like.content_object
             ))
-            notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
-            notification.save()
             action = "liked"
         count = Like.likes_count(CONTENT_TYPE[content_type], object_id)
         return count, action
@@ -144,8 +150,6 @@ class NetworkModel:
                 receiver= user_to_follow,
                 notification_type= "follow",
             ))
-            notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
-            notification.save()
 
         followers_count: int = user_to_follow.followers_count()
         return followers_count, action
@@ -161,9 +165,6 @@ class NetworkModel:
             notification_type= "comment",
             content= comment
         ))
-        notification.message = f"{notification.sender.username}, {NOTIFICATION_MESSAGES[notification.notification_type]}"
-        notification.save()                
-
         return comment
 
     @staticmethod

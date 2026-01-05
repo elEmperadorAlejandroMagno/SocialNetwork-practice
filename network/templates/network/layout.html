@@ -40,8 +40,8 @@
                                             <span class="new-label">🔔 New</span>
                                             <div class="card">
                                                 <p>{{ n.sender }}</p>
+                                                <p>{{ n.created_at|timesince }} ago</p>
                                                 <p>{{ n.message }}</p>
-                                                <p>{{ n.formated_created_at }}</p>
                                             </div>
                                         </li>
                                 {% empty %}

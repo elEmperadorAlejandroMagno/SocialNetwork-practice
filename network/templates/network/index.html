@@ -10,6 +10,7 @@
                 <textarea name="content" id="formContent" placeholder="What's on your mind?" required></textarea>
                 <button type="submit">Post</button>
             </form>
+            <div data-loader="form" class="spinner" style="display:none;"></div>
         </div>
     {% endif %}
     {% if message %}
@@ -22,7 +23,7 @@
             <div class="post" data-post-id="{{ post.id }}">
                     <a href="{% url 'profile' post.author.username %}"><strong>{{ post.author.username }}</strong> says:</a>
                     <p class="post-content">{{ post.content }}</p>
-                    <p class="timestamp">{{ post.formated_created_at }}</p>
+                    <p class="timestamp">{{ post.formatted_created_at }}</p>
                     <p>Likes: <span class="likes-count">{{ post.likes.count }}</span></p>
                     <button class="like-button" id="postLikeBtn">
                         {% if post.liked_by_user %}
@@ -63,8 +64,9 @@
                 {% endif %}
             </ul>
         </nav> -->
+        <div data-loader="post" class="spinner" style="display:none;"></div>
     </div>
 {% endblock %}
 {% block script %}
-    <script src="{% static 'network/index.js' %}"></script>
+    <script src="{% static 'network/index.js' %}" type="module"></script>
 {% endblock %}

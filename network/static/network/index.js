@@ -1,6 +1,10 @@
+import { showLoader, hideLoader, showBtnLoader, hideBtnLoader } from './utils.js';
+
 document.addEventListener("DOMContentLoaded", function () {
 
   let isLoading = false;
+  let counter = 10;
+  const quantity = 10;
 
   window.onscroll = () => {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
@@ -13,115 +17,16 @@ document.addEventListener("DOMContentLoaded", function () {
   let editBtn = document.querySelectorAll("#editBtn");
   let postLikeBtn = document.querySelectorAll("#postLikeBtn");
 
-  if (newPostForm) {
-      newPostForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (isLoading) return;
-      isLoading = true;
-      const formData = new FormData(newPostForm);
-      fetch("/post/new_post", {
-        method: "POST",
-        body: formData,
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === "success") {
-            const post = data.new_post;
-            // Clear the textarea
-            newPostForm.reset();
-            isLoading = false;
-            add_post(post, data.is_author, "top");
-          }
-      });
-    });
-  }
+  create_new_post(newPostForm, POSTS_CONTAINER, isLoading);
+  toggle_like(postLikeBtn, isLoading);
+  edit_post(editBtn, isLoading);
+  fetchInifiteScroll(counter, quantity, POSTS_CONTAINER, isLoading);
+  get_post_details(POSTS_CONTAINER, isLoading);
+});
 
-  if (postLikeBtn.length > 0) {
-    postLikeBtn.forEach((button) => {
-      button.addEventListener("click", (e) => {
-        if (isLoading) return;
-        isLoading = true;
-        const postDiv = e.target.closest(".post");
-        const postId = postDiv.getAttribute("data-post-id");
-        fetch(`/post/like`, {
-          method: "POST",
-          body: JSON.stringify({ 
-            post_id: postId,
-            content_type: "post"
-          }),
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.status === "success") {
-              console.log(data.likes_count)
-              const likesCountSpan = postDiv.querySelector(".likes-count");
-              likesCountSpan.textContent = data.likes_count;
-              e.target.textContent = (data.action === "liked") ? "Unlike" : "Like";
-              isLoading = false;
-            }
-          });
-      });
-    });
-  }
-
-  if (editBtn.length > 0) {
-    editBtn.forEach((button) => {
-      button.addEventListener("click", (e) => {
-        const postDiv = e.target.closest(".post");
-        const postId = postDiv.getAttribute("data-post-id");
-        const postContentP = postDiv.querySelector(".post-content");
-        const originalContent = postContentP.textContent;
-
-        // Create textarea for editing
-        const textarea = document.createElement("textarea");
-        textarea.value = originalContent;
-        postDiv.replaceChild(textarea, postContentP);
-
-        // Change Edit button to Save button
-        e.target.textContent = "Save";
-        e.target.id = "saveBtn";
-
-        // Add event listener for Save button
-        e.target.addEventListener("click", () => {
-          const updatedContent = textarea.value;
-
-          fetch(`/post/edit`, {
-            method: "POST",
-            body: JSON.stringify({
-              "post_id": postId,
-              "content": updatedContent
-            }),
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-            },
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.status === "success") {
-                // Update the post content
-                postContentP.textContent = data.new_content;
-                postDiv.replaceChild(postContentP, textarea);
-                e.target.textContent = "Edit";
-                e.target.id = "editBtn";
-              }
-            })
-            .catch((error) => {
-              console.error("Error updating post:", error);
-            });
-          });
-      });
-    });
-  }
-
-  // Click on a post (outside of links/buttons) navigates to the post details page
-  const postsContainerEl = document.querySelector("#posts-container");
-  if (postsContainerEl) {
-    postsContainerEl.addEventListener("click", (e) => {
+function get_post_details(container) {
+    if (container) {
+    container.addEventListener("click", (e) => {
       const postDiv = e.target.closest(".post");
       if (!postDiv) return;
       // If the click was on an interactive element, don't navigate
@@ -132,16 +37,15 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+}
 
-  let counter = 10;
-  const quantity = 10;
-
-  function fetchInifiteScroll() {
+function fetchInifiteScroll(counter, quantity, container, isLoading) {
     if (isLoading) return; // evita peticiones simultáneas 
     isLoading = true;
 
     let starts = counter
     let ends = starts + quantity - 1
+    showLoader("post");
     fetch('posts?starts=' + String(starts) + '&ends=' + String(ends), {
       method: 'GET',
       headers: {
@@ -150,15 +54,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }).then(response => response.json())
     .then(data => {
       if (data.status == "success") {
-        console.log(data.posts)
-        data.posts.forEach( post => add_post(post, false, "bottom"))
+        data.posts.forEach( post => add_post(post, false, "bottom", container))
         counter = ends + 1
         isLoading = false;
       }
+      hideLoader("post");
     })
   }
 
-function add_post(post, is_author = false, position = "bottom") {
+function add_post(post, is_author = false, position = "bottom", POSTS_CONTAINER) {
     const POST_DIV = document.createElement("div");
     const USERNAME_A = document.createElement("a");
     const CONTENT_P = document.createElement("p");
@@ -178,7 +82,7 @@ function add_post(post, is_author = false, position = "bottom") {
     CONTENT_P.textContent = post.content;
     LIKE_BTN.textContent = "Like";
     LIKES_P.innerHTML = `Likes: <span class="likes-count">${ post.likes_count }</span>`;
-    TIMESTAMP.textContent = `${ post.formated_created_at }`;
+    TIMESTAMP.textContent = `${ post.formatted_created_at }`;
 
     POST_DIV.setAttribute("data-post-id", post.id);
     POST_DIV.appendChild(USERNAME_A);
@@ -204,8 +108,123 @@ function add_post(post, is_author = false, position = "bottom") {
     POSTS_CONTAINER.style.display = "block";
 
     // Actualizar referencias
-    editBtn = document.querySelectorAll("#editBtn");
-    postLikeBtn = document.querySelectorAll("#postLikeBtn");
+    ediit_post(POST_DIV.querySelectorAll("#editBtn"));
+    toggle_like(POST_DIV.querySelectorAll("#postLikeBtn"));
 }
 
-});
+function create_new_post(postForm, isLoading) {
+  if (postForm) {
+      postForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (isLoading) return;
+      isLoading = true;
+      showLoader("form");
+      const formData = new FormData(postForm);
+      fetch("/post/new_post", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "success") {
+            const post = data.new_post;
+            // Clear the textarea
+            postForm.reset();
+            isLoading = false;
+            add_post(post, data.is_author, "top");
+          }
+          hideLoader("form");
+      });
+    });
+  }
+}
+
+function toggle_like(btn, isLoading) {
+    if (btn) {
+    btn.forEach((button) => {
+      button.addEventListener("click", (e) => {
+        if (isLoading) return;
+        isLoading = true;
+        const postDiv = e.target.closest(".post");
+        const postId = postDiv.getAttribute("data-post-id");
+        showBtnLoader(e.target);
+        fetch(`/post/like`, {
+          method: "POST",
+          body: JSON.stringify({ 
+            post_id: postId,
+            content_type: "post"
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              const likesCountSpan = postDiv.querySelector(".likes-count");
+              likesCountSpan.textContent = data.likes_count;
+              hideBtnLoader(e.target, (data.action === "liked") ? "Unlike" : "Like")
+            }
+            isLoading = false;
+          });
+      });
+    });
+  }
+}
+
+function edit_post(btn, isLoading) {
+    if (btn) {
+    btn.forEach((button) => {
+      button.addEventListener("click", (e) => {
+        const postDiv = e.target.closest(".post");
+        const postId = postDiv.getAttribute("data-post-id");
+        const postContentP = postDiv.querySelector(".post-content");
+        const originalContent = postContentP.textContent;
+
+        // Create textarea for editing
+        const textarea = document.createElement("textarea");
+        textarea.value = originalContent;
+        postDiv.replaceChild(textarea, postContentP);
+
+        // Change Edit button to Save button
+        e.target.textContent = "Save";
+        e.target.id = "saveBtn";
+
+        // Add event listener for Save button
+        e.target.addEventListener("click", () => {
+          const updatedContent = textarea.value;
+          showLoader(e.target.closest.dataset.loader);
+          isLoading = true;
+
+          fetch(`/post/edit`, {
+            method: "POST",
+            body: JSON.stringify({
+              "post_id": postId,
+              "content": updatedContent
+            }),
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.status === "success") {
+                // Update the post content
+                postContentP.textContent = data.new_content;
+                postDiv.replaceChild(postContentP, textarea);
+                e.target.textContent = "Edit";
+                e.target.id = "editBtn";
+              }
+              hideLoader(e.target.closest.dataset.loader);
+              isLoading = false;
+            })
+            .catch((error) => {
+              console.error("Error updating post:", error);
+            });
+          });
+      });
+    });
+  }
+}

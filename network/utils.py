@@ -29,6 +29,12 @@ def load_like_state(model_data, user):
             data.liked_by_user = data.likes.filter(user=user).exists()
     return model_like_state_loaded
 
+# def load_like_state_comment(model_data, user):
+#     model_like_state_loaded = model_data
+#     if user.is_authenticated:
+#         model_like_state_loaded.liked_by_user = model_like_state_loaded.likes.filter(user=user).exists()
+#     return model_like_state_loaded
+
 # def format_created_at_attribute(data):
 #     for post in data:
 #         post["created_at"] = date_format(post["created_at"], format='N j, Y, P', use_l10n=True)
