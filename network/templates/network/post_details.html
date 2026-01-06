@@ -23,7 +23,7 @@
       <form class="flex-column justify-content-between w-100" id="newComment">
         <input name="post_id" hidden value="{{ post.id }}">
         <div class="mb-3">
-          <textarea class="form-control" name="content" id="commentContent"></textarea>
+          <textarea class="form-control" name="content" id="commentContent" placeholder="Leave a comment..."></textarea>
         </div>
         <button class="btn btn-dark" type="submit">Publish</button>
       </form>
@@ -52,21 +52,39 @@
       {% endfor %}
     </div>
   </div>
+  <div class="modal-background" id="deleteModal">
+    <div class="modal">
+      <div class="modal-content">
+        <h6>Are you sure you want to delete this comment?</h6>
+        <div class="modal-actions">
+          <button id="deleteModalBtn" class="btn btn-danger">Delete</button>
+          <button id="cancelModalBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% endblock %}
 {% block script %}
     <script type="module">
-    import { showLoader, hideLoader, showBtnLoader, hideBtnLoader } from "{% static 'network/utils.js' %}";
+    import { showLoader, hiddeLoader, showBtnLoader, hiddeBtnLoader, showModal, hiddeModal, fetchCommentLike } from "{% static 'network/utils.js' %}";
 
         document.addEventListener("DOMContentLoaded", function () {
           const commentContainer = document.querySelector(".comments-container");
           const newCommentForm = document.querySelector("#newComment");
+          const deleteModal = document.querySelector(".modal-background");
+          let commentLikeButtons = document.querySelectorAll("#commentLikeBtn");
+          commentLikeButtons.forEach(btn => {
+              btn.addEventListener("click", () => {
+                fetchCommentLike(btn);
+              })
+            });
 
           newCommentForm.addEventListener("submit", function (e) {
             e.preventDefault();
             const newForm = new FormData(newCommentForm);
-            showLoader();
+            showLoader("form");
             fetch("/post/new_comment", {
               method: "POST",
               body: newForm,
@@ -76,7 +94,7 @@
             }).then(response => response.json())
             .then(data => {
               if (data.status === 'success') {
-                hiddeLoader();
+                hiddeLoader("form");
                 const newComment = document.createElement("div");
                 newComment.classList.add("comment");
                 const comment = data.new_comment
@@ -94,6 +112,12 @@
                 commentContainer.prepend(newComment);
                 newCommentForm.reset();
               }
+              let commentLikeBtn = document.querySelectorAll("#commentLikeBtn");
+              commentLikeBtn.addEventListener('click', () => {
+                fetchCommentLike(commentLikeBtn)
+              });
+            }).catch(err => {
+              hiddeBtnLoader(commentLikeBtn, "Like");
             })
           });
 
@@ -105,55 +129,46 @@
               if (deleteBtn) {
                 const commentEl = deleteBtn.closest('.comment');
                 const commentId = commentEl.getAttribute('data-id');
-                fetch('/post/comment/delete', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                  },
-                  body: JSON.stringify({ id: commentId }),
-                })
-                .then(res => res.json())
-                .then(data => {
-                  if (data.status === 'success') {
-                    commentEl.remove();
-                  } else {
-                    console.error('Error deleting comment:', data);
-                  }
-                })
-                .catch(err => console.error(err));
-                return;
+                showModal("deleteModal");
+              
+              const cancelModalBtn = document.querySelector('#cancelModalBtn');
+              const deleteModalBtn = document.querySelector('#deleteModalBtn');
+
+              if (cancelModalBtn) {
+                cancelModalBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  hiddeModal("deleteModal");
+                });
               }
 
-              const likeBtn = e.target.closest('#commentLikeBtn');
-              if (likeBtn) {
-                const commentEl = likeBtn.closest('.comment');
-                const commentId = commentEl.getAttribute('data-id');
-                const likeCount = commentEl.querySelector('.likes-count');
-                showBtnLoader(likeBtn);
+              if (deleteModalBtn) {
+                deleteModalBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  showBtnLoader(deleteModalBtn);
 
-                fetch('/post/comment/like', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                  },
-                  body: JSON.stringify({ comment_id: commentId, content_type: 'comment' }),
-                })
-                .then(res => res.json())
-                .then(data => {
-                  if (data.status === 'success') {
-                    likeCount.textContent = data.likes_count;
-                    likeBtn.textContent = (data.action === 'liked') ? 'Unlike' : 'Like';
-                  } else {
-                    console.error('Error toggling comment like:', data);
-                  }
-                  hiddeBtnLoader(likeBtn);
-                })
-                .catch(err => console.error(err));
-                return;
+                  fetch('/post/comment/delete', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    },
+                    body: JSON.stringify({ id: commentId }),
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.status === 'success') {
+                      commentEl.remove();
+                      hiddeBtnLoader(deleteModalBtn, "Done");
+                      hiddeModal("deleteModal");
+                    } else {
+                      hiddeBtnLoader(deleteModalBtn, "Try Again");
+                      hiddeModal("deleteModal");
+                    }
+                  })
+                  .catch(err => console.error(err));
+                  return;
+                });
               }
-            });
           }
 
           // Manejador de like para el post en la vista de detalle
@@ -163,7 +178,7 @@
               const postDiv = e.target.closest('.post');
               const postId = postDiv.getAttribute('data-post-id');
               const likesCountSpan = postDiv.querySelector('.likes-count');
-              showLoader(postLikeBtn);
+              showBtnLoader(postLikeBtn);
 
               fetch('/post/like', {
                 method: 'POST',
@@ -177,15 +192,16 @@
               .then(data => {
                 if (data.status === 'success') {
                   likesCountSpan.textContent = data.likes_count;
-                  postLikeBtn.textContent = (data.action === 'liked') ? 'Unlike' : 'Like';
+                  hiddeBtnLoader(postLikeBtn, (data.action === 'liked') ? 'Unlike' : 'Like');
                 } else {
-                  console.error('Error toggling post like:', data);
+                  hiddeBtnLoader(postLikeBtn, "Like");
                 }
-                hiddeLoader(postLikeBtn);
               })
               .catch(err => console.error(err));
             });
           }
         });
+      }
+    });
     </script>
 {% endblock %}

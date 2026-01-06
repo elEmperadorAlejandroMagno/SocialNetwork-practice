@@ -1,4 +1,4 @@
-import { showLoader, hideLoader, showBtnLoader, hideBtnLoader } from './utils.js';
+import { showLoader, hiddeLoader, showBtnLoader, hiddeBtnLoader } from './utils.js';
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -58,7 +58,7 @@ function fetchInifiteScroll(counter, quantity, container, isLoading) {
         counter = ends + 1
         isLoading = false;
       }
-      hideLoader("post");
+      hiddeLoader("post");
     })
   }
 
@@ -133,7 +133,7 @@ function create_new_post(postForm, isLoading) {
             isLoading = false;
             add_post(post, data.is_author, "top");
           }
-          hideLoader("form");
+          hiddeLoader("form");
       });
     });
   }
@@ -164,7 +164,7 @@ function toggle_like(btn, isLoading) {
             if (data.status === "success") {
               const likesCountSpan = postDiv.querySelector(".likes-count");
               likesCountSpan.textContent = data.likes_count;
-              hideBtnLoader(e.target, (data.action === "liked") ? "Unlike" : "Like")
+              hiddeBtnLoader(e.target, (data.action === "liked") ? "Unlike" : "Like")
             }
             isLoading = false;
           });
@@ -217,7 +217,7 @@ function edit_post(btn, isLoading) {
                 e.target.textContent = "Edit";
                 e.target.id = "editBtn";
               }
-              hideLoader(e.target.closest.dataset.loader);
+              hiddeLoader(e.target.closest.dataset.loader);
               isLoading = false;
             })
             .catch((error) => {
