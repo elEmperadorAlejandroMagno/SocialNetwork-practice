@@ -108,6 +108,18 @@ body {
 }
 
 /* Posts */
+.edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border: none;              /* sin bordes */
+  outline: none;             /* quita el borde al hacer focus */
+  background-color: #d5d5d5; /* blanco oscuro / gris muy claro */
+  color: #333;               /* texto oscuro para contraste */
+  border-radius: 4px;        /* esquinas suaves */
+  resize: none;          /* permite redimensionar solo en vertical */
+}
+
 .post {
   background-color: #ffffff;
   border-radius: 12px;

@@ -67,6 +67,7 @@
 
 {% endblock %}
 {% block script %}
+    <script type="module" src="{% static 'network/index.js' %}"></script>
     <script type="module">
     import { showLoader, hiddeLoader, showBtnLoader, hiddeBtnLoader, showModal, hiddeModal, fetchCommentLike } from "{% static 'network/utils.js' %}";
 

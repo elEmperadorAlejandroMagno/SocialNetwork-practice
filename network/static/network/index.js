@@ -173,35 +173,39 @@ function toggle_like(btn, isLoading) {
   }
 }
 
-function edit_post(btn, isLoading) {
-    if (btn) {
-    btn.forEach((button) => {
+function edit_post(buttons, isLoading) {
+  if (buttons) {
+    buttons.forEach((button) => {
       button.addEventListener("click", (e) => {
         const postDiv = e.target.closest(".post");
-        const postId = postDiv.getAttribute("data-post-id");
-        const postContentP = postDiv.querySelector(".post-content");
-        const originalContent = postContentP.textContent;
+        const postId = postDiv?.getAttribute("data-post-id");
+        let postContentP = postDiv?.querySelector(".post-content");
+        let textarea = postDiv.querySelector("textarea");
 
-        // Create textarea for editing
-        const textarea = document.createElement("textarea");
-        textarea.value = originalContent;
-        postDiv.replaceChild(textarea, postContentP);
+        if (e.target.id === "editBtn") {
+          // Modo Edit → crear textarea
+          const originalContent = postContentP.textContent;
+          textarea = document.createElement("textarea");
+          textarea.className = "edit-textarea";
+          textarea.value = originalContent;
+          e.target.textContent = "Save";
+          e.target.id = "saveBtn";
 
-        // Change Edit button to Save button
-        e.target.textContent = "Save";
-        e.target.id = "saveBtn";
+          postDiv.replaceChild(textarea, postContentP);
+          textarea.focus();
 
-        // Add event listener for Save button
-        e.target.addEventListener("click", () => {
+        } else if (e.target.id === "saveBtn") {
+          // Modo Save → enviar fetch
           const updatedContent = textarea.value;
-          showLoader(e.target.closest.dataset.loader);
+          const loaderId = e.target.closest("[data-loader]")?.dataset.loader;
+          showBtnLoader(e.target);
           isLoading = true;
 
-          fetch(`/post/edit`, {
+          fetch("/post/edit", {
             method: "POST",
             body: JSON.stringify({
-              "post_id": postId,
-              "content": updatedContent
+              post_id: postId,
+              content: updatedContent,
             }),
             headers: {
               "Content-Type": "application/json",
@@ -211,19 +215,22 @@ function edit_post(btn, isLoading) {
             .then((response) => response.json())
             .then((data) => {
               if (data.status === "success") {
-                // Update the post content
+                postContentP = document.createElement("p");
+                postContentP.className = "post-content";
                 postContentP.textContent = data.new_content;
                 postDiv.replaceChild(postContentP, textarea);
                 e.target.textContent = "Edit";
                 e.target.id = "editBtn";
               }
-              hiddeLoader(e.target.closest.dataset.loader);
-              isLoading = false;
             })
             .catch((error) => {
-              console.error("Error updating post:", error);
+              console.error("Error updating post", error);
+            })
+            .finally(() => {
+              hiddeBtnLoader(e.target, "Edit");
+              isLoading = false;
             });
-          });
+        }
       });
     });
   }
