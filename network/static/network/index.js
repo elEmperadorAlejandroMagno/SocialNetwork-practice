@@ -5,23 +5,24 @@ document.addEventListener("DOMContentLoaded", function () {
   let isLoading = false;
   let counter = 10;
   const quantity = 10;
+  let starts = counter;
+  let ends = starts + quantity - 1;
 
   window.onscroll = () => {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
-        fetchInifiteScroll();
+        fetchInifiteScroll(counter, starts, ends, POSTS_CONTAINER, isLoading);
     }
   };
   // Add event listeners or any other JavaScript code here if needed
   let newPostForm = document.querySelector("#newPostForm");
-  const POSTS_CONTAINER = document.querySelector("#posts-container");
   let editBtn = document.querySelectorAll("#editBtn");
   let postLikeBtn = document.querySelectorAll("#postLikeBtn");
+  const POSTS_CONTAINER = document.querySelector("#posts-container");
 
   create_new_post(newPostForm, POSTS_CONTAINER, isLoading);
   toggle_like(postLikeBtn, isLoading);
   edit_post(editBtn, isLoading);
-  fetchInifiteScroll(counter, quantity, POSTS_CONTAINER, isLoading);
-  get_post_details(POSTS_CONTAINER, isLoading);
+  get_post_details(POSTS_CONTAINER);
 });
 
 function get_post_details(container) {
@@ -39,12 +40,10 @@ function get_post_details(container) {
   }
 }
 
-function fetchInifiteScroll(counter, quantity, container, isLoading) {
+function fetchInifiteScroll(counter, starts, ends, container, isLoading) {
     if (isLoading) return; // evita peticiones simultáneas 
     isLoading = true;
 
-    let starts = counter
-    let ends = starts + quantity - 1
     showLoader("post");
     fetch('posts?starts=' + String(starts) + '&ends=' + String(ends), {
       method: 'GET',
@@ -108,15 +107,16 @@ function add_post(post, is_author = false, position = "bottom", POSTS_CONTAINER)
     POSTS_CONTAINER.style.display = "block";
 
     // Actualizar referencias
-    ediit_post(POST_DIV.querySelectorAll("#editBtn"));
+    edit_post(POST_DIV.querySelectorAll("#editBtn"));
     toggle_like(POST_DIV.querySelectorAll("#postLikeBtn"));
 }
 
-function create_new_post(postForm, isLoading) {
+function create_new_post(postForm, container, isLoading) {
   if (postForm) {
       postForm.addEventListener("submit", (e) => {
+      console.log("algo");
       e.preventDefault();
-      if (isLoading) return;
+      if (isLoading == true) return;
       isLoading = true;
       showLoader("form");
       const formData = new FormData(postForm);
@@ -131,7 +131,7 @@ function create_new_post(postForm, isLoading) {
             // Clear the textarea
             postForm.reset();
             isLoading = false;
-            add_post(post, data.is_author, "top");
+            add_post(post, data.is_author, "top", container);
           }
           hiddeLoader("form");
       });
