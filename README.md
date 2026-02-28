@@ -60,6 +60,10 @@
 
 -[EN PROGRESO] Agregar loading feedback loading screen para new post y carga de nuevos posts con infinite scroll
 -[BUG] edit_post form de index.html
+-[ ] Agregar msj directos entre usuarios
+-[ ] Manejar imagenes en posteos
+-[ ] Manejar imagenes de perfil y portada
+
 
 
 
