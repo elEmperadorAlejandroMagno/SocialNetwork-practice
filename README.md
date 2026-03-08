@@ -31,7 +31,7 @@
   - within the all post template or in separate template
   - textarea and button to write an create new post
 
-### Pagination with django
+### Pagination with django ( eliminated ) [❌]
 
 -[✔] Paginator
   - Server side  (django.core.paginator -> Paginator )
@@ -60,9 +60,10 @@
 
 -[EN PROGRESO] Agregar loading feedback loading screen para new post y carga de nuevos posts con infinite scroll
 -[BUG] edit_post form de index.html
--[ ] Agregar msj directos entre usuarios
+-[ ] Agregar msj directos entre usuarios with WebSocket
 -[ ] Manejar imagenes en posteos
 -[ ] Manejar imagenes de perfil y portada
+-[ ] update notifications to use WebSocket
 
 
 
